@@ -50,18 +50,6 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-### Database
-
-Run the files in `supabase/` against your Supabase project via the SQL Editor — `schema.sql` first, then each migration in `supabase/migrations/` in chronological order.
-
-### Run
-
-```bash
-npm run dev
-```
-
-Visit `/dev` to seed a demo university with one account per role, then log in at `http://localhost:3000`.
-
 ---
 
 ## License
