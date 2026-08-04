@@ -371,7 +371,7 @@ import { examSettingsSchema } from './exams'
 
 const validExam = {
   title: 'CSC 301 First C.A. Test',
-  course_id: '11111111-1111-1111-1111-111111111111',
+  course_id: '11111111-1111-4111-a111-111111111111',
   exam_type: 'ca',
   academic_session: '2024/2025',
   semester: 'first',
@@ -463,7 +463,7 @@ Create `lib/validations/questions.test.js`:
 import { describe, it, expect } from 'vitest'
 import { questionSchema } from './questions'
 
-const courseId = '11111111-1111-1111-1111-111111111111'
+const courseId = '11111111-1111-4111-a111-111111111111'
 
 describe('questionSchema', () => {
   it('accepts a valid MCQ question', () => {
@@ -1008,8 +1008,8 @@ describe('inviteUser', () => {
     const serverClient = createMockSupabaseClient({ users: [{ data: null, error: null }] })
     createClient.mockResolvedValue(serverClient)
 
-    const deptId = '11111111-1111-1111-1111-111111111111'
-    const facId = '22222222-2222-2222-2222-222222222222'
+    const deptId = '11111111-1111-4111-a111-111111111111'
+    const facId = '22222222-2222-4222-a222-222222222222'
 
     const result = await inviteUser(undefined, formData({
       email: 'lecturer2@example.com', full_name: 'Dr. Two', role: 'lecturer',
