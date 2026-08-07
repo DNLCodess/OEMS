@@ -62,28 +62,9 @@ export function InviteUserModal({ faculties, departments }) {
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 >
                   <option value="lecturer">Lecturer</option>
-                  <option value="student">Student</option>
                   <option value="school_admin">Exam Officer</option>
                 </select>
               </div>
-
-              {role === 'student' && (
-                <>
-                  <Input
-                    id="matric_number" name="matric_number" label="Matric Number"
-                    placeholder="CSC/2021/001" required
-                    error={state?.errors?.matric_number?.[0]}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1.5">Level</label>
-                    <select name="level" className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
-                      {['100','200','300','400','500','PG'].map(l => (
-                        <option key={l} value={l}>{l === 'PG' ? 'Postgraduate' : `${l} Level`}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
 
               {deptOptions.length > 0 && (
                 <div>

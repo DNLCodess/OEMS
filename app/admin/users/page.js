@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Badge } from '@/components/ui/Badge'
 import { InviteUserModal } from './InviteUserModal'
+import { BulkUploadStudentsModal } from './BulkUploadStudentsModal'
 import { ToggleActiveButton } from './ToggleActiveButton'
 
 export const metadata = { title: 'Users — OEMS' }
@@ -52,10 +53,16 @@ export default async function AdminUsersPage() {
         title="User Management"
         subtitle="Invite and manage lecturers, students, and exam officers"
         actions={
-          <InviteUserModal
-            faculties={faculties ?? []}
-            departments={departments ?? []}
-          />
+          <div className="flex items-center gap-2">
+            <BulkUploadStudentsModal
+              faculties={faculties ?? []}
+              departments={departments ?? []}
+            />
+            <InviteUserModal
+              faculties={faculties ?? []}
+              departments={departments ?? []}
+            />
+          </div>
         }
       />
       <main className="flex-1 p-6 space-y-8">
