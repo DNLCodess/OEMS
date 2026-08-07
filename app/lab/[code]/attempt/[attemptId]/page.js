@@ -16,9 +16,9 @@ export default async function LabAttemptPage({ params }) {
     .select(`
       id, title, status, duration_minutes, pass_mark,
       randomise_questions, randomise_options,
-      show_calculator, tips, proctoring_enabled, lab_code
+      show_calculator, tips, proctoring_enabled, access_code
     `)
-    .eq('lab_code', code.toUpperCase())
+    .eq('access_code', code.toUpperCase())
     .single()
 
   if (!exam) notFound()
