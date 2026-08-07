@@ -49,6 +49,9 @@ AGENTS.md
 memory/
 oems_prd.md
 
+# git worktrees used for isolated feature work
+.worktrees/
+
 # Next.js 16 — workspace root warning (multi-project monorepo false positive)
 # turbopack.root is not set intentionally for single-app use
 
