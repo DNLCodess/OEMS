@@ -52,6 +52,9 @@ oems_prd.md
 # git worktrees used for isolated feature work
 .worktrees/
 
+# subagent-driven-development scratch workspace (ledgers, briefs, diffs)
+.superpowers/
+
 # Next.js 16 — workspace root warning (multi-project monorepo false positive)
 # turbopack.root is not set intentionally for single-app use
 
