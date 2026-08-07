@@ -20,7 +20,7 @@ export default async function LabLobbyPage({ params }) {
       show_calculator, tips,
       courses!course_id ( course_code, course_title )
     `)
-    .eq('lab_code', code.toUpperCase())
+    .eq('access_code', code.toUpperCase())
     .single()
 
   if (!exam) notFound()

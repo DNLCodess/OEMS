@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Check, RefreshCw, Loader2, Monitor } from 'lucide-react'
+import { Copy, Check, RefreshCw, Loader2, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
-import { generateLabCode } from '@/lib/actions/exams'
+import { generateAccessCode } from '@/lib/actions/exams'
 
-export function LabCodePanel({ examId, labCode: initialCode, examStatus }) {
+export function AccessCodePanel({ examId, accessCode: initialCode, examStatus }) {
   const [code,        setCode]        = useState(initialCode)
   const [copied,      setCopied]      = useState(false)
   const [generating,  setGenerating]  = useState(false)
@@ -16,33 +16,33 @@ export function LabCodePanel({ examId, labCode: initialCode, examStatus }) {
     if (!code) return
     await navigator.clipboard.writeText(code)
     setCopied(true)
-    toast.success('Lab code copied')
+    toast.success('Access code copied')
     setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleGenerate() {
     setGenerating(true)
-    const result = await generateLabCode(examId)
+    const result = await generateAccessCode(examId)
     setGenerating(false)
     if (result?.error) {
       toast.error(result.error)
       return
     }
-    setCode(result.lab_code)
-    toast.success('New lab code generated')
+    setCode(result.access_code)
+    toast.success('New access code generated')
   }
 
   return (
     <div className="bg-surface border border-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Monitor size={15} className="text-primary" />
-        <h3 className="text-sm font-semibold text-text-primary">Lab Session</h3>
+        <KeyRound size={15} className="text-primary" />
+        <h3 className="text-sm font-semibold text-text-primary">Exam Access Code</h3>
       </div>
 
       {code ? (
         <>
           <p className="text-xs text-text-muted mb-2">
-            Share this code with students. They enter it at{' '}
+            Share this code with students. They enter it, with their matric number, at{' '}
             <span className="font-mono text-text-secondary">/lab</span>.
           </p>
           <div className="flex items-center gap-2 mb-3">
@@ -75,7 +75,7 @@ export function LabCodePanel({ examId, labCode: initialCode, examStatus }) {
       ) : (
         <>
           <p className="text-xs text-text-muted mb-3">
-            Generate a code so students can join the lab session.
+            Generate a code so students can access this exam.
           </p>
           {canGenerate && (
             <button
@@ -85,7 +85,7 @@ export function LabCodePanel({ examId, labCode: initialCode, examStatus }) {
             >
               {generating
                 ? <><Loader2 size={14} className="animate-spin" /> Generating…</>
-                : 'Generate Lab Code'
+                : 'Generate Access Code'
               }
             </button>
           )}

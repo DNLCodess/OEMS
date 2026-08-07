@@ -5,7 +5,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { ExamBuilder } from '@/components/exams/ExamBuilder'
 import { WorkflowPanel } from '@/components/exams/WorkflowPanel'
-import { LabCodePanel } from '@/components/exams/LabCodePanel'
+import { AccessCodePanel } from '@/components/exams/AccessCodePanel'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 
@@ -25,7 +25,7 @@ export default async function ExamDetailPage({ params }) {
         id, title, status, exam_type, academic_session, semester,
         duration_minutes, pass_mark, start_at, end_at, instructions,
         randomise_questions, randomise_options, created_by,
-        exam_mode, lab_code, proctoring_enabled, show_calculator, tips,
+        exam_mode, access_code, proctoring_enabled, show_calculator, tips,
         courses!course_id ( course_code, course_title )
       `)
       .eq('id', id)
@@ -132,14 +132,11 @@ export default async function ExamDetailPage({ params }) {
         <div className="space-y-4">
           <WorkflowPanel examId={id} currentStatus={exam.status} />
 
-          {/* Lab code panel — only for lab mode exams */}
-          {exam.exam_mode === 'lab' && (
-            <LabCodePanel
-              examId={id}
-              labCode={exam.lab_code}
-              examStatus={exam.status}
-            />
-          )}
+          <AccessCodePanel
+            examId={id}
+            accessCode={exam.access_code}
+            examStatus={exam.status}
+          />
 
           {/* Exam info card */}
           <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
