@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-const CHAIN_METHODS = ['select', 'eq', 'in', 'order', 'single', 'update', 'insert', 'upsert']
+const CHAIN_METHODS = ['select', 'eq', 'in', 'order', 'single', 'maybeSingle', 'gte', 'update', 'insert', 'upsert']
 
 function createQueryBuilder(table, nextResponse) {
   const builder = {}
@@ -39,8 +39,10 @@ export function createMockSupabaseClient(tableResponses = {}) {
       signOut: vi.fn(),
       resetPasswordForEmail: vi.fn(),
       updateUser: vi.fn(),
+      verifyOtp: vi.fn(),
       admin: {
         createUser: vi.fn(),
+        generateLink: vi.fn(),
       },
     },
   }

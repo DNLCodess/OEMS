@@ -44,3 +44,17 @@ describe('createMockSupabaseClient', () => {
     expect(result.data.user.id).toBe('u1')
   })
 })
+
+describe('createMockSupabaseClient auth surface', () => {
+  it('exposes generateLink and verifyOtp as mock functions', () => {
+    const client = createMockSupabaseClient()
+    expect(client.auth.admin.generateLink).toBeTypeOf('function')
+    expect(client.auth.verifyOtp).toBeTypeOf('function')
+  })
+
+  it('chains maybeSingle and gte like the other query methods', () => {
+    const client = createMockSupabaseClient({ users: [{ data: { id: 'u1' }, error: null }] })
+    const builder = client.from('users').select('*').eq('id', 'u1').gte('created_at', '2026-01-01').maybeSingle()
+    expect(builder).toBeDefined()
+  })
+})
