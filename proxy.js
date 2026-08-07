@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/dev']
+const EXACT_PUBLIC_PATHS = ['/lab']
 
 const ROLE_HOME = {
   super_admin:  '/super-admin/dashboard',
@@ -14,9 +15,9 @@ export async function proxy(request) {
   const { supabaseResponse, user } = await updateSession(request)
   const { pathname } = request.nextUrl
 
-  const isPublicPath = PUBLIC_PATHS.some(
-    p => pathname === p || pathname.startsWith(p + '/')
-  )
+  const isPublicPath =
+    PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/')) ||
+    EXACT_PUBLIC_PATHS.includes(pathname)
 
   // No session — redirect to login, preserving the intended destination
   if (!user && !isPublicPath) {

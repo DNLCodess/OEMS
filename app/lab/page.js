@@ -2,7 +2,7 @@
 // No layout chrome, works on any device in the lab.
 import { LabCodeEntry } from './LabCodeEntry'
 
-export const metadata = { title: 'Enter Lab Code — OEMS' }
+export const metadata = { title: 'Enter Exam — OEMS' }
 
 export default function LabEntryPage() {
   return (
@@ -15,7 +15,7 @@ export default function LabEntryPage() {
           </div>
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">OEMS Exam</h1>
           <p className="text-sm text-text-muted mt-1">
-            Enter the lab code displayed by your lecturer
+            Enter your matric number and the exam access code
           </p>
         </div>
 
