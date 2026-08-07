@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/dev']
-const EXACT_PUBLIC_PATHS = ['/lab']
+const EXACT_PUBLIC_PATHS = ['/lab', '/check-result']
 
 const ROLE_HOME = {
   super_admin:  '/super-admin/dashboard',
