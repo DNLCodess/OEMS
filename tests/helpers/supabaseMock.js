@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-const CHAIN_METHODS = ['select', 'eq', 'in', 'order', 'single', 'maybeSingle', 'gte', 'update', 'insert', 'upsert', 'delete']
+const CHAIN_METHODS = ['select', 'eq', 'in', 'or', 'limit', 'order', 'single', 'maybeSingle', 'gte', 'update', 'insert', 'upsert', 'delete']
 
 function createQueryBuilder(table, nextResponse) {
   const builder = {}
