@@ -75,7 +75,12 @@ function UserFooter({ user }) {
     <div className="px-3 py-4 border-t border-white/10">
       <div className="px-3 py-2 mb-1">
         <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
-        <p className="text-xs text-white/55 truncate">{user.email}</p>
+        {/* Students authenticate credential-less; their email is a synthetic
+            internal address (<matric>@<uni-id>.students.oems.internal) that
+            is implementation plumbing and must never be shown to them. */}
+        {user.role !== 'student' && (
+          <p className="text-xs text-white/55 truncate">{user.email}</p>
+        )}
         {user.matric_number && (
           <p className="text-xs font-mono text-white/45 mt-0.5">{user.matric_number}</p>
         )}
