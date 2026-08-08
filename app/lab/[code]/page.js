@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { LabStartButton } from './LabStartButton'
+import { EndSessionButton } from './EndSessionButton'
 import { Clock, BookOpen, FileText, Monitor } from 'lucide-react'
 
 export const metadata = { title: 'Exam — OEMS Lab' }
@@ -124,7 +125,10 @@ export default async function LabLobbyPage({ params }) {
         {/* CTA */}
         <div className="text-center">
           {alreadyDone ? (
-            <p className="text-sm text-text-secondary">You have already submitted this exam.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-text-secondary">You have already submitted this exam.</p>
+              <EndSessionButton />
+            </div>
           ) : (
             <LabStartButton examId={exam.id} labCode={code} />
           )}

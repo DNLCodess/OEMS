@@ -15,9 +15,9 @@ export async function proxy(request) {
   const { supabaseResponse, user } = await updateSession(request)
   const { pathname } = request.nextUrl
 
-  const isPublicPath =
-    PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/')) ||
-    EXACT_PUBLIC_PATHS.includes(pathname)
+  const isExactPublicPath = EXACT_PUBLIC_PATHS.includes(pathname)
+  const isPublicAuthPath  = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isPublicPath      = isPublicAuthPath || isExactPublicPath
 
   // No session — redirect to login, preserving the intended destination
   if (!user && !isPublicPath) {
@@ -27,9 +27,14 @@ export async function proxy(request) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated user visiting a public auth page — send to their dashboard.
-  // Role is read from user_metadata (set on signup) to avoid a DB call here.
-  if (user && isPublicPath) {
+  // Authenticated user visiting a public auth page (/login, /forgot-password,
+  // /dev) — send to their dashboard. Role is read from user_metadata (set on
+  // signup) to avoid a DB call here.
+  //
+  // /lab and /check-result are deliberately excluded: they must stay
+  // reachable even with a session already present, so a student can sign
+  // out-and-back-in or enter a second exam without being bounced first.
+  if (user && isPublicAuthPath) {
     const role = user.user_metadata?.role
     const home = ROLE_HOME[role] ?? '/login'
     const homeUrl = request.nextUrl.clone()
