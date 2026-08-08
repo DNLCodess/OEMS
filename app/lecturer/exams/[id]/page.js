@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ExamBuilder } from '@/components/exams/ExamBuilder'
 import { WorkflowPanel } from '@/components/exams/WorkflowPanel'
 import { AccessCodePanel } from '@/components/exams/AccessCodePanel'
+import { ExamAccessPanel } from '@/components/exams/ExamAccessPanel'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 
@@ -18,7 +19,7 @@ export default async function ExamDetailPage({ params }) {
   const supabase = await createClient()
   const { id }   = await params
 
-  const [{ data: exam }, { data: examQuestions }, { data: bankQuestions }] = await Promise.all([
+  const [{ data: exam }, { data: examQuestions }, { data: bankQuestions }, { data: examAccess }] = await Promise.all([
     supabase
       .from('exams')
       .select(`
@@ -50,6 +51,11 @@ export default async function ExamDetailPage({ params }) {
       .eq('university_id', user.university_id)
       .eq('is_archived', false)
       .order('created_at', { ascending: false }),
+
+    supabase
+      .from('exam_access')
+      .select('users:user_id ( id, full_name, matric_number )')
+      .eq('exam_id', id),
   ])
 
   if (!exam || exam.created_by !== user.id) notFound()
@@ -136,6 +142,11 @@ export default async function ExamDetailPage({ params }) {
             examId={id}
             accessCode={exam.access_code}
             examStatus={exam.status}
+          />
+
+          <ExamAccessPanel
+            examId={id}
+            initialRestricted={(examAccess ?? []).map(row => row.users)}
           />
 
           {/* Exam info card */}
