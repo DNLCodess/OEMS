@@ -43,6 +43,7 @@ export function createMockSupabaseClient(tableResponses = {}) {
       admin: {
         createUser: vi.fn(),
         generateLink: vi.fn(),
+        updateUserById: vi.fn(),
       },
     },
   }
