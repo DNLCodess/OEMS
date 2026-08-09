@@ -188,6 +188,7 @@ export default async function ExamResultsPage({ params }) {
               <ResultsTable
                 rows={rows}
                 totalPossible={totalPossible}
+                examTitle={exam.title}
               />
             </div>
 

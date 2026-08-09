@@ -31,7 +31,9 @@ export default async function ResultPage({ params }) {
     .eq('student_id', user.id)
     .maybeSingle()
 
-  // A submitted attempt always has a result row by now (set at submission).
+  // A submitted attempt normally has a result row by now (written in the
+  // same request that marks it submitted) — but this can legitimately be
+  // null in rare cases, so it's guarded below rather than assumed.
   const { data: result } = await supabase
     .from('results')
     .select('final_score, passed')
@@ -77,7 +79,27 @@ export default async function ResultPage({ params }) {
     )
   }
 
-  // ── Result released ────────────────────────────────────────────────────────
+  // ── Result not yet available ───────────────────────────────────────────────
+  // Under normal operation, submitExam() writes the result row in the same
+  // request that marks the attempt submitted, so this should be momentary at
+  // most. It guards a rare edge case (e.g. a transient DB error during
+  // submission) rather than a normal expected state.
+  if (!result) {
+    return (
+      <div className="max-w-lg mx-auto px-6 py-16 text-center">
+        <Clock size={40} className="mx-auto text-text-muted mb-4" />
+        <h1 className="text-xl font-bold text-text-primary mb-2">Result pending</h1>
+        <p className="text-sm text-text-secondary mb-6">
+          Your result is being finalized. Please check back shortly, or contact your exam officer if this persists.
+        </p>
+        <Link href="/student/exams" className="text-primary text-sm hover:underline">
+          Back to my exams →
+        </Link>
+      </div>
+    )
+  }
+
+  // ── Result available ────────────────────────────────────────────────────────
   const percentage = totalPossible > 0
     ? Math.round((result.final_score / totalPossible) * 100)
     : 0

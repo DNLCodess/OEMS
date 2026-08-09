@@ -2,7 +2,7 @@
 
 import { Download, Printer, CheckCircle2, XCircle } from 'lucide-react'
 
-export function ResultsTable({ rows, totalPossible }) {
+export function ResultsTable({ rows, totalPossible, examTitle }) {
   // ── CSV export ──────────────────────────────────────────────────────────────
   function exportCSV() {
     const headers = ['Rank', 'Full Name', 'Matric Number', 'Score', 'Total', 'Percentage', 'Pass/Fail']
@@ -20,7 +20,8 @@ export function ResultsTable({ rows, totalPossible }) {
       .join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url  = URL.createObjectURL(blob)
-    const a    = Object.assign(document.createElement('a'), { href: url, download: 'results.csv' })
+    const filename = examTitle ? `${examTitle}_results.csv` : 'results.csv'
+    const a    = Object.assign(document.createElement('a'), { href: url, download: filename })
     a.click()
     URL.revokeObjectURL(url)
   }

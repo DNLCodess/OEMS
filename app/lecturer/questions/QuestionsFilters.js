@@ -9,8 +9,6 @@ const TYPES = [
   { value: 'multi_select', label: 'Multi-select' },
   { value: 'true_false',   label: 'True/False' },
   { value: 'fill_blank',   label: 'Fill-in-blank' },
-  { value: 'short_answer', label: 'Short answer' },
-  { value: 'essay',        label: 'Essay' },
 ]
 
 const DIFFICULTIES = [

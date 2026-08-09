@@ -121,41 +121,5 @@ export function AnswerForm({ question, answer, onChange }) {
     )
   }
 
-  // ── Short answer ─────────────────────────────────────────────────────────────
-  if (type === 'short_answer') {
-    return (
-      <div>
-        <label className="text-sm text-text-muted block mb-2">
-          Your answer <span className="text-text-muted">(a few sentences)</span>
-        </label>
-        <textarea
-          value={answer ?? ''}
-          onChange={e => onChange(e.target.value)}
-          placeholder="Type your answer here…"
-          rows={4}
-          className="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary bg-surface resize-y focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-primary/15"
-        />
-        <p className="text-xs text-text-muted mt-1.5">This question will be manually graded by your lecturer.</p>
-      </div>
-    )
-  }
-
-  // ── Essay ────────────────────────────────────────────────────────────────────
-  if (type === 'essay') {
-    return (
-      <div>
-        <label className="text-sm text-text-muted block mb-2">Your response</label>
-        <textarea
-          value={answer ?? ''}
-          onChange={e => onChange(e.target.value)}
-          placeholder="Write your essay response here…"
-          rows={10}
-          className="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary bg-surface resize-y focus:outline-none focus:border-border-focus focus:ring-2 focus:ring-primary/15 leading-relaxed"
-        />
-        <p className="text-xs text-text-muted mt-1.5">This question will be manually graded by your lecturer.</p>
-      </div>
-    )
-  }
-
   return null
 }

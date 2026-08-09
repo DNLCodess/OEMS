@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Badge } from '@/components/ui/Badge'
-import { BarChart2, Users, CheckCircle2, Clock, AlertTriangle, ArrowRight } from 'lucide-react'
+import { BarChart2, Users } from 'lucide-react'
 
 export const metadata = { title: 'Results' }
 
@@ -39,7 +39,7 @@ export default async function LecturerResultsPage() {
 
   const examIds = exams.map(e => e.id)
 
-  const [{ data: attempts }, { data: results }, { data: responses }] = await Promise.all([
+  const [{ data: attempts }, { data: results }] = await Promise.all([
     supabase
       .from('attempts')
       .select('id, exam_id, status, total_score, student_id')
@@ -48,32 +48,9 @@ export default async function LecturerResultsPage() {
 
     supabase
       .from('results')
-      .select('exam_id, student_id, final_score, passed, released_at')
+      .select('exam_id, student_id, final_score, passed')
       .in('exam_id', examIds),
-
-    // Check which attempts still have ungraded responses
-    supabase
-      .from('responses')
-      .select('attempt_id')
-      .in('attempt_id',
-        // We'll use a broad in — empty array guard
-        ['00000000-0000-0000-0000-000000000000']
-      )
-      .is('is_correct', null)
-      .limit(1),
   ])
-
-  // Get attempt IDs for ungraded check
-  const attemptIds = (attempts ?? []).map(a => a.id)
-  const { data: ungradedResponses } = attemptIds.length
-    ? await supabase
-        .from('responses')
-        .select('attempt_id')
-        .in('attempt_id', attemptIds)
-        .is('is_correct', null)
-    : { data: [] }
-
-  const attemptsNeedingReview = new Set((ungradedResponses ?? []).map(r => r.attempt_id))
 
   // Build per-exam aggregates
   const enriched = exams.map(exam => {
@@ -81,9 +58,7 @@ export default async function LecturerResultsPage() {
     const examAttempts = (attempts ?? []).filter(a => a.exam_id === exam.id)
     const examResults  = (results ?? []).filter(r => r.exam_id === exam.id)
 
-    const submitted = examAttempts.length
-    const released  = examResults.filter(r => r.released_at).length
-    const unreleased = examResults.length - released
+    const submitted  = examAttempts.length
     const passCount  = examResults.filter(r => r.passed).length
     const passRate   = examResults.length > 0 ? Math.round((passCount / examResults.length) * 100) : null
 
@@ -92,22 +67,16 @@ export default async function LecturerResultsPage() {
     const maxScore = scores.length > 0 ? Math.max(...scores) : null
     const minScore = scores.length > 0 ? Math.min(...scores) : null
 
-    const needsReviewCount = examAttempts.filter(a => attemptsNeedingReview.has(a.id)).length
-
-    const allReleased = examResults.length > 0 && released === examResults.length
-
     return {
-      ...exam, totalMarks, submitted, released, unreleased,
+      ...exam, totalMarks, submitted,
       passCount, passRate, avgScore, maxScore, minScore,
-      needsReviewCount, allReleased, resultCount: examResults.length,
+      resultCount: examResults.length,
     }
   })
 
   // Summary across all exams
   const totalSubmissions  = enriched.reduce((s, e) => s + e.submitted, 0)
   const totalPassed       = enriched.reduce((s, e) => s + e.passCount, 0)
-  const totalUnreleased   = enriched.reduce((s, e) => s + e.unreleased, 0)
-  const totalNeedsReview  = enriched.reduce((s, e) => s + e.needsReviewCount, 0)
   const overallPassRate   = totalSubmissions > 0
     ? Math.round((totalPassed / totalSubmissions) * 100)
     : null
@@ -122,46 +91,14 @@ export default async function LecturerResultsPage() {
       </div>
 
       {/* Platform summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
         <SummaryCard label="Total Submissions" value={totalSubmissions} color="neutral" />
         <SummaryCard
           label="Overall Pass Rate"
           value={overallPassRate !== null ? `${overallPassRate}%` : '—'}
           color={overallPassRate !== null ? (overallPassRate >= 60 ? 'success' : 'danger') : 'neutral'}
         />
-        <SummaryCard
-          label="Awaiting Release"
-          value={totalUnreleased}
-          color={totalUnreleased > 0 ? 'warning' : 'neutral'}
-        />
-        <SummaryCard
-          label="Need Grading"
-          value={totalNeedsReview}
-          color={totalNeedsReview > 0 ? 'warning' : 'neutral'}
-        />
       </div>
-
-      {/* Alert banners */}
-      {(totalNeedsReview > 0 || totalUnreleased > 0) && (
-        <div className="space-y-2 mb-6">
-          {totalNeedsReview > 0 && (
-            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-800 flex-1">
-                <span className="font-semibold">{totalNeedsReview} submission{totalNeedsReview > 1 ? 's' : ''}</span> have essay or short-answer questions awaiting manual grading.
-              </p>
-            </div>
-          )}
-          {totalUnreleased > 0 && (
-            <div className="flex items-center gap-3 bg-primary-light border border-primary/20 rounded-xl px-4 py-3">
-              <Clock size={15} className="text-primary shrink-0" />
-              <p className="text-sm text-primary flex-1">
-                <span className="font-semibold">{totalUnreleased} result{totalUnreleased > 1 ? 's' : ''}</span> are graded but not yet released to students.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Exam cards */}
       <div className="grid gap-5">
@@ -175,21 +112,6 @@ export default async function LecturerResultsPage() {
                     {exam.courses?.course_code}
                   </span>
                   <Badge variant={exam.status} />
-                  {exam.allReleased && exam.resultCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs text-success bg-success-light px-2 py-0.5 rounded-full">
-                      <CheckCircle2 size={10} /> Released
-                    </span>
-                  )}
-                  {!exam.allReleased && exam.released > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning-light px-2 py-0.5 rounded-full">
-                      <Clock size={10} /> Partially released
-                    </span>
-                  )}
-                  {exam.needsReviewCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs text-warning bg-amber-50 px-2 py-0.5 rounded-full">
-                      <AlertTriangle size={10} /> {exam.needsReviewCount} need review
-                    </span>
-                  )}
                 </div>
                 <p className="font-semibold text-text-primary">{exam.title}</p>
                 <p className="text-xs text-text-muted mt-0.5">{exam.courses?.course_title} · Pass mark: {exam.pass_mark}% · Total: {exam.totalMarks} marks</p>

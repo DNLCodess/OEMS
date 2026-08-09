@@ -15,7 +15,7 @@ export default function DevPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 w-full max-w-md p-8">
         <h1 className="text-xl font-bold text-slate-900 tracking-tight mb-1">Seed Demo Data</h1>
         <p className="text-sm text-slate-500 mb-6">
-          Creates a university, faculties, departments, courses, 3 demo accounts, questions, a closed exam, a graded attempt, and a released result — ready to demo in one click.
+          Creates a university, faculties, departments, courses, 3 demo accounts, questions, a closed exam, and a submitted attempt with a result — ready to demo in one click.
         </p>
         <DevSeedButton />
       </div>
