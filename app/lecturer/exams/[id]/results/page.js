@@ -39,19 +39,12 @@ export default async function ExamResultsPage({ params }) {
 
   const { data: results } = await supabase
     .from('results')
-    .select('attempt_id, final_score, passed, released_at')
+    .select('attempt_id, final_score, passed')
     .eq('exam_id', id)
 
   const resultMap = new Map((results ?? []).map(r => [r.attempt_id, r]))
 
   const attemptIds = (attempts ?? []).map(a => a.id)
-  const { data: manualCheck } = attemptIds.length
-    ? await supabase
-        .from('responses')
-        .select('attempt_id')
-        .in('attempt_id', attemptIds)
-        .is('is_correct', null)
-    : { data: [] }
 
   // Per-question stats: how many got each question wrong
   const { data: allResponses } = attemptIds.length
@@ -61,26 +54,20 @@ export default async function ExamResultsPage({ params }) {
         .in('attempt_id', attemptIds)
     : { data: [] }
 
-  const attemptsNeedingReview = new Set((manualCheck ?? []).map(r => r.attempt_id))
-
   const rows = (attempts ?? []).map(a => {
     const result  = resultMap.get(a.id)
     const score   = result?.final_score ?? a.total_score ?? 0
     const pct     = totalPossible > 0 ? Math.round((score / totalPossible) * 100) : 0
     return {
-      attempt_id:     a.id,
-      full_name:      a.users?.full_name ?? 'Unknown',
-      matric_number:  a.users?.matric_number ?? null,
-      level:          a.users?.level ?? null,
+      attempt_id:    a.id,
+      full_name:     a.users?.full_name ?? 'Unknown',
+      matric_number: a.users?.matric_number ?? null,
+      level:         a.users?.level ?? null,
       score,
-      percentage:     pct,
-      passed:         result?.passed ?? null,
-      released:       !!result?.released_at,
-      grading_status: attemptsNeedingReview.has(a.id) ? 'needs_review' : 'graded',
+      percentage:    pct,
+      passed:        result?.passed ?? null,
     }
   })
-
-  const allReleased = rows.length > 0 && rows.every(r => r.released)
 
   // ── Analytics ───────────────────────────────────────────────────────────────
   const scores       = rows.map(r => r.score)
@@ -199,11 +186,8 @@ export default async function ExamResultsPage({ params }) {
 
               {/* Full results table */}
               <ResultsTable
-                examId={id}
-                examTitle={exam.title}
                 rows={rows}
                 totalPossible={totalPossible}
-                allReleased={allReleased}
               />
             </div>
 
