@@ -21,11 +21,11 @@ export default async function StudentDashboardPage() {
     { data: scheduledExams },
     { data: attempts },
   ] = await Promise.all([
-    // All released results with course and marks data
+    // All results with course and marks data
     supabase
       .from('results')
       .select(`
-        final_score, passed, released_at,
+        final_score, passed,
         exams:exam_id (
           id, title, pass_mark,
           courses!course_id ( course_code, course_title ),
@@ -33,8 +33,7 @@ export default async function StudentDashboardPage() {
         )
       `)
       .eq('student_id', user.id)
-      .not('released_at', 'is', null)
-      .order('released_at', { ascending: false }),
+      .order('created_at', { ascending: false }),
 
     // Available live exams right now
     supabase
@@ -176,7 +175,7 @@ export default async function StudentDashboardPage() {
             <StatCard
               label="Average Score"
               value={`${avgPct}%`}
-              sub="across all released results"
+              sub="across all completed exams"
               color={avgPct >= 70 ? 'success' : avgPct >= 50 ? 'warning' : 'danger'}
             />
             <StatCard

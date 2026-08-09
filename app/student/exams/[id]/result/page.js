@@ -31,13 +31,12 @@ export default async function ResultPage({ params }) {
     .eq('student_id', user.id)
     .maybeSingle()
 
-  // Fetch released result (null if not yet released)
+  // A submitted attempt always has a result row by now (set at submission).
   const { data: result } = await supabase
     .from('results')
-    .select('final_score, passed, released_at')
+    .select('final_score, passed')
     .eq('exam_id', examId)
     .eq('student_id', user.id)
-    .not('released_at', 'is', null)
     .maybeSingle()
 
   // Fetch total possible marks
@@ -78,34 +77,12 @@ export default async function ResultPage({ params }) {
     )
   }
 
-  // ── Submitted but result not released ──────────────────────────────────────
-  if (!result) {
-    return (
-      <div className="max-w-lg mx-auto px-6 py-16 text-center">
-        <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 size={28} className="text-primary" />
-        </div>
-        <h1 className="text-xl font-bold text-text-primary mb-2">Exam submitted!</h1>
-        <p className="text-sm text-text-secondary mb-1">
-          Your answers have been received and are being reviewed.
-        </p>
-        <p className="text-sm text-text-muted">
-          Results will appear here once your lecturer releases them.
-        </p>
-        <Link href="/student/exams" className="inline-block mt-6 text-primary text-sm hover:underline">
-          ← Back to my exams
-        </Link>
-      </div>
-    )
-  }
-
   // ── Result released ────────────────────────────────────────────────────────
   const percentage = totalPossible > 0
     ? Math.round((result.final_score / totalPossible) * 100)
     : 0
 
-  const autoGradedResponses  = responses.filter(r => r.is_correct !== null)
-  const manualResponses      = responses.filter(r => r.is_correct === null)
+  const autoGradedResponses = responses
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -199,16 +176,6 @@ export default async function ResultPage({ params }) {
               )
             })}
           </div>
-        </div>
-      )}
-
-      {manualResponses.length > 0 && (
-        <div className="mt-6 p-4 bg-surface border border-border rounded-xl">
-          <p className="text-sm text-text-secondary">
-            <span className="font-medium text-text-primary">{manualResponses.length} question(s)</span>{' '}
-            (short answer / essay) will be graded manually by your lecturer.
-            Your score above reflects auto-graded questions only.
-          </p>
         </div>
       )}
 

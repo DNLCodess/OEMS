@@ -14,7 +14,7 @@ export default async function StudentResultsPage() {
   const { data: results } = await supabase
     .from('results')
     .select(`
-      final_score, passed, released_at,
+      final_score, passed,
       exams:exam_id (
         id, title, pass_mark, exam_type,
         courses!course_id ( course_code, course_title ),
@@ -23,8 +23,7 @@ export default async function StudentResultsPage() {
       attempts:attempt_id ( submitted_at )
     `)
     .eq('student_id', user.id)
-    .not('released_at', 'is', null)
-    .order('released_at', { ascending: false })
+    .order('attempts(submitted_at)', { ascending: false })
 
   if (!results?.length) {
     return (
@@ -33,7 +32,7 @@ export default async function StudentResultsPage() {
         <EmptyState
           icon={BarChart2}
           title="No results yet"
-          description="Your results will appear here once your lecturer releases them."
+          description="Your results will appear here as soon as you complete an exam."
           action={
             <Link href="/student/exams" className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors">
               View My Exams
@@ -89,7 +88,7 @@ export default async function StudentResultsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">My Results</h1>
         <p className="text-sm text-text-secondary mt-1">
-          {total} result{total !== 1 ? 's' : ''} released
+          {total} result{total !== 1 ? 's' : ''}
         </p>
       </div>
 

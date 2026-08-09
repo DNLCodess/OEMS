@@ -39,14 +39,12 @@ export default async function StudentExamsPage() {
         .in('exam_id', examIds)
     : { data: [] }
 
-  // Fetch released results
   const { data: results } = examIds.length
     ? await supabase
         .from('results')
-        .select('exam_id, final_score, passed, released_at')
+        .select('exam_id, final_score, passed')
         .eq('student_id', user.id)
         .in('exam_id', examIds)
-        .not('released_at', 'is', null)
     : { data: [] }
 
   const attemptMap = new Map((attempts ?? []).map(a => [a.exam_id, a]))
