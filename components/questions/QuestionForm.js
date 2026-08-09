@@ -124,8 +124,6 @@ export function QuestionForm({ question, courses }) {
   const showOptions       = ['mcq', 'multi_select'].includes(watchedType)
   const showTrueFalse     = watchedType === 'true_false'
   const showFillBlank     = watchedType === 'fill_blank'
-  const showShortAnswer   = watchedType === 'short_answer'
-  const showEssayNote     = watchedType === 'essay'
 
   return (
     <>
@@ -308,26 +306,6 @@ export function QuestionForm({ question, courses }) {
                 error={errors.correct_answer?.message}
                 {...register('correct_answer')}
               />
-            )}
-
-            {showShortAnswer && (
-              <Input
-                id="correct_answer_short"
-                label="Model answer (for your reference)"
-                placeholder="Enter a sample correct response…"
-                hint="Shown to you when manually grading. Students write freely."
-                error={errors.correct_answer?.message}
-                {...register('correct_answer')}
-              />
-            )}
-
-            {showEssayNote && (
-              <div className="rounded-xl border border-border bg-page px-5 py-4">
-                <p className="text-sm font-medium text-text-primary mb-1">Manual grading</p>
-                <p className="text-sm text-text-secondary leading-relaxed">
-                  Essay questions are graded manually. You&apos;ll see each student&apos;s submission in the results panel and can award marks and write feedback there.
-                </p>
-              </div>
             )}
           </section>
 

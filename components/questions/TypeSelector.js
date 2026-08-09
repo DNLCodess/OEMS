@@ -5,8 +5,6 @@ import {
   ToggleLeft,
   List,
   PenLine,
-  MessageSquare,
-  FileText,
 } from 'lucide-react'
 
 const TYPES = [
@@ -33,18 +31,6 @@ const TYPES = [
     label: 'Fill-in-blank',
     description: 'Complete the sentence',
     icon: PenLine,
-  },
-  {
-    value: 'short_answer',
-    label: 'Short Answer',
-    description: 'Brief written response',
-    icon: MessageSquare,
-  },
-  {
-    value: 'essay',
-    label: 'Essay',
-    description: 'Extended response',
-    icon: FileText,
   },
 ]
 

@@ -15,8 +15,6 @@ const TYPE_LABELS = {
   multi_select: 'Multi-select',
   true_false:   'True / False',
   fill_blank:   'Fill-in-blank',
-  short_answer: 'Short answer',
-  essay:        'Essay',
 }
 
 export function QuestionPickerModal({ examId, questions, addedIds, onAdd, onClose }) {

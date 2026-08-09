@@ -8,8 +8,6 @@ const TYPE_LABELS = {
   multi_select: 'Multiple Choice — select all that apply',
   true_false:   'True or False',
   fill_blank:   'Fill in the blank',
-  short_answer: 'Short Answer',
-  essay:        'Essay',
 }
 
 export function QuestionPreview({ open, onClose, question }) {
@@ -82,18 +80,6 @@ export function QuestionPreview({ open, onClose, question }) {
           {type === 'fill_blank' && (
             <div className="border border-border rounded-lg px-4 py-3 bg-page">
               <p className="text-sm text-text-muted">Student types their answer here…</p>
-            </div>
-          )}
-
-          {type === 'short_answer' && (
-            <div className="border border-border rounded-lg px-4 py-8 bg-page text-center">
-              <p className="text-sm text-text-muted">Student writes a short response here…</p>
-            </div>
-          )}
-
-          {type === 'essay' && (
-            <div className="border border-border rounded-lg px-4 py-12 bg-page text-center">
-              <p className="text-sm text-text-muted">Student writes an extended essay response here…</p>
             </div>
           )}
         </div>
