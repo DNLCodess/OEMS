@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import {
-  Wifi, Monitor, Camera, Calculator, Lightbulb,
+  Calculator, Lightbulb,
   Plus, Trash2, Info,
 } from 'lucide-react'
 
@@ -41,7 +41,7 @@ export function ExamSettingsForm({ courses, exam = null }) {
           randomise_questions: exam.randomise_questions ?? false,
           randomise_options:   exam.randomise_options   ?? false,
           instructions:        exam.instructions ?? '',
-          exam_mode:           exam.exam_mode ?? 'remote',
+          exam_mode:           exam.exam_mode ?? 'lab',
           proctoring_enabled:  exam.proctoring_enabled ?? false,
           show_calculator:     exam.show_calculator ?? false,
           tips:                exam.tips?.map(t => ({ value: t })) ?? [],
@@ -53,7 +53,7 @@ export function ExamSettingsForm({ courses, exam = null }) {
           randomise_questions: false,
           randomise_options:   false,
           instructions:        '',
-          exam_mode:           'remote',
+          exam_mode:           'lab',
           proctoring_enabled:  false,
           show_calculator:     false,
           tips:                [],
@@ -65,8 +65,6 @@ export function ExamSettingsForm({ courses, exam = null }) {
     name: 'tips',
   })
 
-  const examMode = watch('exam_mode')
-
   async function onSubmit(data) {
     const payload = {
       ...data,
@@ -74,8 +72,8 @@ export function ExamSettingsForm({ courses, exam = null }) {
       end_at:   data.end_at   || null,
       // Unwrap tips from { value } objects
       tips: (data.tips ?? []).map(t => t.value).filter(Boolean),
-      // Lab mode never has proctoring
-      proctoring_enabled: data.exam_mode === 'remote' ? data.proctoring_enabled : false,
+      // Proctoring UI has been retired — every exam is lab-delivered now.
+      proctoring_enabled: false,
     }
 
     const result = isEdit
@@ -180,72 +178,15 @@ export function ExamSettingsForm({ courses, exam = null }) {
         </div>
       </section>
 
-      {/* ── Delivery mode ───────────────────────────────────────────────────── */}
-      <section className="bg-surface border border-border rounded-xl p-6 space-y-5">
-        <div>
-          <h2 className="text-base font-semibold text-text-primary">Delivery Mode</h2>
-          <p className="text-sm text-text-muted mt-1">
-            Choose how students will access and sit this exam.
+      {/* ── Delivery ─────────────────────────────────────────────────────────── */}
+      <section className="bg-surface border border-border rounded-xl p-6 space-y-3">
+        <h2 className="text-base font-semibold text-text-primary">Delivery</h2>
+        <div className="flex items-start gap-2 bg-primary-light border border-primary/20 rounded-lg px-3 py-2.5">
+          <Info size={13} className="text-primary shrink-0 mt-0.5" />
+          <p className="text-xs text-primary/80">
+            After saving, go to the exam detail page to generate an <strong>access code</strong>. Display it on a projector or share it with students in the lab — they enter it with their matric number to begin. No navigation, just the exam.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ModeCard
-            id="mode-remote"
-            value="remote"
-            icon={Wifi}
-            title="Remote"
-            description="Students take the exam from any location using their own devices. Optional webcam proctoring available."
-            selected={examMode === 'remote'}
-            registerProps={register('exam_mode')}
-          />
-          <ModeCard
-            id="mode-lab"
-            value="lab"
-            icon={Monitor}
-            title="Computer Lab"
-            description="All students sit together in a lab. A lab code links every machine directly to this exam — no navigation, just the exam."
-            selected={examMode === 'lab'}
-            registerProps={register('exam_mode')}
-          />
-        </div>
-
-        {/* Proctoring — remote only */}
-        {examMode === 'remote' && (
-          <div className="border border-border rounded-xl p-4 space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-0.5 w-4 h-4 rounded accent-primary"
-                {...register('proctoring_enabled')}
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <Camera size={15} className="text-text-muted" />
-                  <span className="text-sm font-medium text-text-primary">Enable webcam proctoring</span>
-                </div>
-                <p className="text-xs text-text-muted mt-0.5">
-                  The student's webcam is activated during the exam. Random photos are taken at irregular intervals (every 2–8 minutes) and stored for your review. Students are informed before starting.
-                </p>
-              </div>
-            </label>
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-              <Info size={13} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800">
-                Requires students to grant camera permission in their browser. If denied, they will see a warning but can still continue.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {examMode === 'lab' && (
-          <div className="flex items-start gap-2 bg-primary-light border border-primary/20 rounded-lg px-3 py-2.5">
-            <Info size={13} className="text-primary shrink-0 mt-0.5" />
-            <p className="text-xs text-primary/80">
-              After saving, go to the exam detail page to generate a <strong>lab code</strong>. Display the URL <code className="bg-primary/10 px-1 rounded">oems.edu.ng/lab/[CODE]</code> on a projector or enter it on each lab machine. Students see only the exam interface — no sidebar, no navigation.
-            </p>
-          </div>
-        )}
       </section>
 
       {/* ── Options ─────────────────────────────────────────────────────────── */}
@@ -341,28 +282,5 @@ export function ExamSettingsForm({ courses, exam = null }) {
         </Button>
       </div>
     </form>
-  )
-}
-
-function ModeCard({ id, value, icon: Icon, title, description, selected, registerProps }) {
-  return (
-    <label
-      htmlFor={id}
-      className={[
-        'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
-        selected
-          ? 'border-primary bg-primary-light'
-          : 'border-border bg-surface hover:border-primary/30',
-      ].join(' ')}
-    >
-      <input type="radio" id={id} value={value} className="sr-only" {...registerProps} />
-      <span className={`size-9 flex items-center justify-center rounded-lg shrink-0 ${selected ? 'bg-primary text-white' : 'bg-slate-100 text-text-muted'}`}>
-        <Icon size={18} />
-      </span>
-      <div>
-        <p className={`text-sm font-semibold ${selected ? 'text-primary' : 'text-text-primary'}`}>{title}</p>
-        <p className="text-xs text-text-muted mt-0.5 leading-relaxed">{description}</p>
-      </div>
-    </label>
   )
 }
