@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { endStudentSession } from '@/lib/actions/studentAuth'
 
-export function EndSessionButton() {
+export function EndSessionButton({ code }) {
   const [loading, setLoading] = useState(false)
 
   async function handleClick() {
     setLoading(true)
-    await endStudentSession()
+    await endStudentSession(code)
   }
 
   return (

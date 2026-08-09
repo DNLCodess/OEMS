@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { MatricEntryForm } from './MatricEntryForm'
 import { LabStartButton } from './LabStartButton'
 import { EndSessionButton } from './EndSessionButton'
 import { Clock, BookOpen, FileText, Monitor } from 'lucide-react'
@@ -8,11 +10,52 @@ import { Clock, BookOpen, FileText, Monitor } from 'lucide-react'
 export const metadata = { title: 'Exam — OEMS Lab' }
 
 export default async function LabLobbyPage({ params }) {
-  const user     = await requireRole('student')
-  const supabase = await createClient()
   const { code } = await params
+  const upperCode = code.toUpperCase()
 
-  // Look up exam by lab code
+  // A lab machine can be pre-loaded to this URL before anyone has entered a
+  // matric number — an unauthenticated visitor has no RLS-visible session,
+  // so this initial lookup must use the admin client, the same way
+  // verifyExamAccess does. Only the exam's existence is checked here;
+  // nothing sensitive (instructions, questions, status detail) is exposed
+  // before authentication.
+  const adminClient = createAdminClient()
+  const { data: examBasic } = await adminClient
+    .from('exams')
+    .select('id')
+    .eq('access_code', upperCode)
+    .maybeSingle()
+
+  if (!examBasic) notFound()
+
+  const supabase = await createClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+
+  const isAuthedForThisExam =
+    authUser?.app_metadata?.session_channel === 'exam_access' &&
+    authUser?.app_metadata?.verified_exam_id === examBasic.id
+
+  if (!isAuthedForThisExam) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full">
+              <Monitor size={12} />
+              Lab Session · Code: {upperCode}
+            </span>
+          </div>
+          <MatricEntryForm code={upperCode} />
+        </div>
+      </div>
+    )
+  }
+
+  // Authenticated for this specific exam — requireRole re-confirms the
+  // role/active-account guard (redirects to /login if that somehow doesn't
+  // hold), then everything below is unchanged from before this task.
+  const user = await requireRole('student')
+
   const { data: exam } = await supabase
     .from('exams')
     .select(`
@@ -21,7 +64,7 @@ export default async function LabLobbyPage({ params }) {
       show_calculator, tips,
       courses!course_id ( course_code, course_title )
     `)
-    .eq('access_code', code.toUpperCase())
+    .eq('access_code', upperCode)
     .single()
 
   if (!exam) notFound()
@@ -50,7 +93,7 @@ export default async function LabLobbyPage({ params }) {
     .maybeSingle()
 
   if (attempt?.status === 'in_progress') {
-    redirect(`/lab/${code}/attempt/${attempt.id}`)
+    redirect(`/lab/${upperCode}/attempt/${attempt.id}`)
   }
 
   const { data: examQuestions } = await supabase
@@ -73,7 +116,7 @@ export default async function LabLobbyPage({ params }) {
         <div className="flex items-center justify-center gap-2 mb-6">
           <span className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full">
             <Monitor size={12} />
-            Lab Session · Code: {code.toUpperCase()}
+            Lab Session · Code: {upperCode}
           </span>
         </div>
 
@@ -127,10 +170,10 @@ export default async function LabLobbyPage({ params }) {
           {alreadyDone ? (
             <div className="space-y-4">
               <p className="text-sm text-text-secondary">You have already submitted this exam.</p>
-              <EndSessionButton />
+              <EndSessionButton code={upperCode} />
             </div>
           ) : (
-            <LabStartButton examId={exam.id} labCode={code} />
+            <LabStartButton examId={exam.id} labCode={upperCode} />
           )}
         </div>
       </div>
