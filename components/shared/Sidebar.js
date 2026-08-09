@@ -12,10 +12,9 @@ import { signOut } from '@/lib/actions/auth'
 
 const NAV = {
   super_admin: [
-    { label: 'Dashboard',    href: '/super-admin/dashboard',   icon: LayoutDashboard },
-    { label: 'Universities', href: '/super-admin/universities', icon: Building2 },
-    { label: 'All Users',    href: '/super-admin/users',        icon: Users },
-    { label: 'Settings',     href: '/super-admin/settings',     icon: Settings },
+    { label: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
+    { label: 'All Users', href: '/super-admin/users',     icon: Users },
+    { label: 'Settings',  href: '/super-admin/settings',  icon: Settings },
   ],
   school_admin: [
     { label: 'Dashboard',         href: '/admin/dashboard',  icon: LayoutDashboard },

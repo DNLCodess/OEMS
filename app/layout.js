@@ -1,12 +1,18 @@
-import { Plus_Jakarta_Sans } from 'next/font/google'
-import { Geist_Mono } from 'next/font/google'
+import { Inter, Playfair_Display, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const jakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-jakarta',
+  variable: '--font-inter',
   weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+})
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  weight: ['600', '700'],
   display: 'swap',
 })
 
@@ -19,21 +25,21 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: {
     template: '%s — OEMS',
-    default: 'OEMS — Online Examination Management System',
+    default: 'OEMS — Precious Cornerstone University CBT Platform',
   },
-  description: 'Computer-Based Test platform for Nigerian universities.',
+  description: 'Computer-Based Test platform built for Precious Cornerstone University.',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${geistMono.variable} h-full overflow-hidden`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${geistMono.variable} h-full overflow-hidden`}>
       <body className="h-full overflow-hidden">
         {children}
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              fontFamily: 'var(--font-jakarta)',
+              fontFamily: 'var(--font-inter)',
               fontSize: '14px',
             },
           }}

@@ -1,8 +1,8 @@
 # OEMS — Online Examination Management System
 
-A full-stack, multi-tenant Computer-Based Test (CBT) platform built for Nigerian universities. Covers the complete exam lifecycle from question authoring to result publication, with role-scoped access for every stakeholder.
+A full-stack Computer-Based Test (CBT) platform built for Precious Cornerstone University (PCU), Ibadan. Covers the complete exam lifecycle from question authoring to result publication, with role-scoped access for every stakeholder.
 
-> Academic Research Project · Next.js 16 · Supabase · Tailwind CSS v4
+> Academic Research Project · Precious Cornerstone University · Next.js 16 · Supabase · Tailwind CSS v4
 
 ---
 

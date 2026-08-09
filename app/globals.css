@@ -2,16 +2,24 @@
 @import "katex/dist/katex.min.css";
 
 @theme {
-  /* Typography — Plus Jakarta Sans loaded via next/font in layout.js */
-  --font-sans: var(--font-jakarta);
-  --font-mono: var(--font-geist-mono);
+  /* Typography — Inter (body) + Playfair Display (headings), loaded via
+     next/font in layout.js — matches Precious Cornerstone University's own
+     site (pcu.edu.ng). */
+  --font-sans:  var(--font-inter);
+  --font-serif: var(--font-playfair);
+  --font-mono:  var(--font-geist-mono);
 
-  /* Primary — Deep Navy
+  /* Primary — PCU Deep Purple
      Used for: primary buttons, active nav items, key headings.
-     Reason: Authoritative without being corporate blue. Reads well at all sizes. */
-  --color-primary:       #1E3A5F;
-  --color-primary-light: #EFF6FF;
-  --color-primary-hover: #162D4A;
+     Matches Precious Cornerstone University's brand (pcu.edu.ng). */
+  --color-primary:       #3A0A5E;
+  --color-primary-light: #F3E8FF;
+  --color-primary-hover: #2C0747;
+
+  /* Accent — PCU Red + Gold
+     Secondary brand colors, for CTAs and highlights. */
+  --color-accent: #B91C1C;
+  --color-gold:   #EAB308;
 
   /* Surfaces
      Background is slate-100, not white — reduces eye strain during long exam sessions. */
@@ -50,6 +58,11 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
   line-height: 1.6;
+}
+
+/* Headings use Playfair Display, matching Precious Cornerstone University's site */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
 }
 
 /* Monospace for matric numbers and course codes */
