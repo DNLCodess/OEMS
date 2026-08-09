@@ -16,7 +16,7 @@ export default async function AdminExamsPage() {
   const { data: exams } = await supabase
     .from('exams')
     .select(`
-      id, title, status, exam_type, academic_session, semester, start_at,
+      id, title, status, exam_type, academic_session, semester,
       courses ( course_code ),
       users:created_by ( full_name ),
       exam_questions ( id )

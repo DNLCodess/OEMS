@@ -626,7 +626,7 @@ Add to `lib/actions/attempts.test.js`'s `describe('startExam', ...)` block:
 
 ```javascript
   it('auto-submits and returns an error when resuming an attempt past its deadline', async () => {
-    const startedAt = new Date(Date.now() - 61 * 60 * 1000).toISOString() // 61 min ago, well past a 60-min exam + grace
+    const startedAt = new Date(Date.now() - 62 * 60 * 1000).toISOString() // 62 min ago, comfortably past a 60-min exam + 60s grace
     const supabase = createMockSupabaseClient({
       // submitExam queries `exams` a second time internally (for pass_mark),
       // separately from startExam's own exam fetch above it — two entries,

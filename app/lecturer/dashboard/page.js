@@ -31,7 +31,7 @@ export default async function LecturerDashboardPage() {
     // All my exams with question marks
     supabase
       .from('exams')
-      .select('id, title, status, pass_mark, start_at, end_at, courses!course_id ( course_code ), exam_questions ( marks )')
+      .select('id, title, status, pass_mark, courses!course_id ( course_code ), exam_questions ( marks )')
       .eq('university_id', user.university_id)
       .eq('created_by', user.id)
       .order('created_at', { ascending: false }),

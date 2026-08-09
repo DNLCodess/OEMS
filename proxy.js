@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/dev']
-const EXACT_PUBLIC_PATHS = ['/lab', '/check-result']
+// /check-result has no dynamic sub-routes, so an exact match is correct.
+const EXACT_PUBLIC_PATHS = ['/check-result']
+// /lab has dynamic sub-routes (/lab/[code], /lab/[code]/attempt/[attemptId])
+// that each carry their own requireRole('student') gate, so the proxy layer
+// only needs to avoid blocking unauthenticated visitors — it must match as
+// a prefix, not an exact path.
+const PREFIX_PUBLIC_PATHS = ['/lab']
 
 const ROLE_HOME = {
   super_admin:  '/super-admin/dashboard',
@@ -15,9 +21,10 @@ export async function proxy(request) {
   const { supabaseResponse, user } = await updateSession(request)
   const { pathname } = request.nextUrl
 
-  const isExactPublicPath = EXACT_PUBLIC_PATHS.includes(pathname)
-  const isPublicAuthPath  = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
-  const isPublicPath      = isPublicAuthPath || isExactPublicPath
+  const isExactPublicPath  = EXACT_PUBLIC_PATHS.includes(pathname)
+  const isPrefixPublicPath = PREFIX_PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isPublicAuthPath   = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isPublicPath       = isPublicAuthPath || isExactPublicPath || isPrefixPublicPath
 
   // No session — redirect to login, preserving the intended destination
   if (!user && !isPublicPath) {
