@@ -146,7 +146,8 @@ export default async function ExamDetailPage({ params }) {
 
           <ExamAccessPanel
             examId={id}
-            initialRestricted={(examAccess ?? []).map(row => row.users)}
+            initialRestricted={(examAccess ?? []).map(row => row.users).filter(Boolean)}
+            examStatus={exam.status}
           />
 
           {/* Exam info card */}

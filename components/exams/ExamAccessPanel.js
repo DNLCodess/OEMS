@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Search, UserPlus, X, Users } from 'lucide-react'
+import { Search, UserPlus, X, Users, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { searchEligibleStudents, addExamAccessStudent, removeExamAccessStudent } from '@/lib/actions/exams'
 
-export function ExamAccessPanel({ examId, initialRestricted }) {
+export function ExamAccessPanel({ examId, initialRestricted, examStatus }) {
   const [restricted, setRestricted] = useState(initialRestricted)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [pending, startTransition] = useTransition()
+
+  const canEdit = examStatus === 'draft' || examStatus === 'scheduled'
 
   async function handleSearch(e) {
     e.preventDefault()
@@ -58,7 +60,7 @@ export function ExamAccessPanel({ examId, initialRestricted }) {
 
       {restricted.length === 0 ? (
         <p className="text-xs text-text-muted mb-3">
-          Open to all students. Search below to restrict this exam to specific students.
+          Open to all students.{canEdit ? ' Search below to restrict this exam to specific students.' : ''}
         </p>
       ) : (
         <>
@@ -72,61 +74,72 @@ export function ExamAccessPanel({ examId, initialRestricted }) {
                   <span className="font-medium text-text-primary">{s.full_name}</span>{' '}
                   <span className="font-mono text-text-muted">{s.matric_number}</span>
                 </span>
-                <button
-                  onClick={() => handleRemove(s.id)}
-                  disabled={pending}
-                  className="text-text-muted hover:text-danger disabled:opacity-50"
-                  title="Remove"
-                >
-                  <X size={13} />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => handleRemove(s.id)}
+                    disabled={pending}
+                    className="text-text-muted hover:text-danger disabled:opacity-50"
+                    title="Remove"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         </>
       )}
 
-      <form onSubmit={handleSearch} className="flex gap-2 mb-2">
-        <input
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by matric number or name"
-          className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-        />
-        <button
-          type="submit"
-          disabled={searching || query.trim().length < 2}
-          className="px-3 py-2 border border-border rounded-lg text-text-muted hover:text-primary disabled:opacity-50"
-          title="Search"
-        >
-          <Search size={14} />
-        </button>
-      </form>
+      {canEdit ? (
+        <>
+          <form onSubmit={handleSearch} className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search by matric number or name"
+              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+            <button
+              type="submit"
+              disabled={searching || query.trim().length < 2}
+              className="px-3 py-2 border border-border rounded-lg text-text-muted hover:text-primary disabled:opacity-50"
+              title="Search"
+            >
+              <Search size={14} />
+            </button>
+          </form>
 
-      {results.length > 0 && (
-        <ul className="space-y-1.5">
-          {results.map(s => (
-            <li key={s.id} className="flex items-center justify-between px-3 py-2 text-xs">
-              <span>
-                <span className="font-medium text-text-primary">{s.full_name}</span>{' '}
-                <span className="font-mono text-text-muted">{s.matric_number}</span>
-              </span>
-              {s.added ? (
-                <span className="text-success">Added</span>
-              ) : (
-                <button
-                  onClick={() => handleAdd(s)}
-                  disabled={pending}
-                  className="text-primary hover:text-primary-hover disabled:opacity-50"
-                  title="Add"
-                >
-                  <UserPlus size={14} />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+          {results.length > 0 && (
+            <ul className="space-y-1.5">
+              {results.map(s => (
+                <li key={s.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                  <span>
+                    <span className="font-medium text-text-primary">{s.full_name}</span>{' '}
+                    <span className="font-mono text-text-muted">{s.matric_number}</span>
+                  </span>
+                  {s.added ? (
+                    <span className="text-success">Added</span>
+                  ) : (
+                    <button
+                      onClick={() => handleAdd(s)}
+                      disabled={pending}
+                      className="text-primary hover:text-primary-hover disabled:opacity-50"
+                      title="Add"
+                    >
+                      <UserPlus size={14} />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p className="flex items-center gap-1.5 text-xs text-text-muted pt-2 border-t border-border">
+          <Lock size={11} />
+          Access list is locked once the exam starts.
+        </p>
       )}
     </div>
   )
