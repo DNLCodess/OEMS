@@ -24,7 +24,7 @@ export default async function ExamDetailPage({ params }) {
       .from('exams')
       .select(`
         id, title, status, exam_type, academic_session, semester,
-        duration_minutes, pass_mark, start_at, end_at, instructions,
+        duration_minutes, pass_mark, instructions,
         randomise_questions, randomise_options, created_by,
         exam_mode, access_code, proctoring_enabled, show_calculator, tips,
         courses!course_id ( course_code, course_title )
@@ -173,22 +173,6 @@ export default async function ExamDetailPage({ params }) {
                 <dt className="text-text-muted">Randomise options</dt>
                 <dd className="text-text-primary">{exam.randomise_options ? 'Yes' : 'No'}</dd>
               </div>
-              {exam.start_at && (
-                <div className="flex justify-between">
-                  <dt className="text-text-muted">Starts</dt>
-                  <dd className="text-text-primary text-xs">
-                    {new Date(exam.start_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </dd>
-                </div>
-              )}
-              {exam.end_at && (
-                <div className="flex justify-between">
-                  <dt className="text-text-muted">Ends</dt>
-                  <dd className="text-text-primary text-xs">
-                    {new Date(exam.end_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </dd>
-                </div>
-              )}
             </dl>
 
             {/* Active features */}

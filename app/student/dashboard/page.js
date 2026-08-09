@@ -6,14 +6,12 @@ import {
   ClipboardList, CheckCircle2, XCircle, Clock, ArrowRight,
   TrendingUp, TrendingDown, Minus, BookOpen, Target, AlertCircle,
 } from 'lucide-react'
-import { format, formatDistanceToNow } from 'date-fns'
 
 export const metadata = { title: 'Dashboard' }
 
 export default async function StudentDashboardPage() {
   const user     = await requireRole('student')
   const supabase = await createClient()
-  const now      = new Date()
 
   const [
     { data: allResults },
@@ -35,25 +33,23 @@ export default async function StudentDashboardPage() {
       .eq('student_id', user.id)
       .order('created_at', { ascending: false }),
 
-    // Available live exams right now
+    // Available live exams right now — any status: 'live' exam is
+    // available, there's no more fixed start/end window to check against.
     supabase
       .from('exams')
-      .select('id, title, end_at, courses!course_id ( course_code )')
+      .select('id, title, courses!course_id ( course_code )')
       .eq('university_id', user.university_id)
       .eq('status', 'live')
-      .lte('start_at', now.toISOString())
-      .gte('end_at', now.toISOString())
-      .order('end_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(5),
 
     // Scheduled upcoming exams
     supabase
       .from('exams')
-      .select('id, title, start_at, courses!course_id ( course_code )')
+      .select('id, title, courses!course_id ( course_code )')
       .eq('university_id', user.university_id)
       .eq('status', 'scheduled')
-      .gte('start_at', now.toISOString())
-      .order('start_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(5),
 
     // Student's own in-progress or submitted attempts (for "started but not graded" count)
@@ -154,9 +150,6 @@ export default async function StudentDashboardPage() {
                     </span>
                     <span className="text-sm font-medium text-text-primary">{e.title}</span>
                   </div>
-                  <div className="text-xs text-amber-600 shrink-0 ml-2">
-                    Ends {formatDistanceToNow(new Date(e.end_at), { addSuffix: true })}
-                  </div>
                 </Link>
               ))}
             </div>
@@ -251,14 +244,6 @@ export default async function StudentDashboardPage() {
                           {e.courses?.course_code}
                         </span>
                         <span className="text-sm text-text-primary truncate">{e.title}</span>
-                      </div>
-                      <div className="shrink-0 ml-2 text-right">
-                        <p className="text-xs font-medium text-text-secondary">
-                          {format(new Date(e.start_at), 'MMM d')}
-                        </p>
-                        <p className="text-xs text-text-muted">
-                          {format(new Date(e.start_at), 'HH:mm')}
-                        </p>
                       </div>
                     </div>
                   ))}
