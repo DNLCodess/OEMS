@@ -148,11 +148,22 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
     setSaveStatus('saving')
     clearTimeout(saveTimers.current[questionId])
     saveTimers.current[questionId] = setTimeout(async () => {
-      await saveAnswer(attemptId, questionId, value)
+      const result = await saveAnswer(attemptId, questionId, value)
+      // The server is the source of truth on time, not this component's
+      // local countdown — if it says time's up (e.g. the local timer was
+      // tampered with, or the two clocks drifted), funnel into the same
+      // submit flow the countdown hitting zero already uses, rather than
+      // just showing a failed-save error.
+      if (result?.timeExpired && !autoSubmitted.current) {
+        autoSubmitted.current = true
+        toast.info('Time is up — submitting your exam…')
+        doSubmit(true)
+        return
+      }
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus(null), 2000)
     }, 800)
-  }, [attemptId])
+  }, [attemptId]) // eslint-disable-line
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function doSubmit(isAuto = false) {
