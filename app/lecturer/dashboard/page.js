@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import {
   FileQuestion, ScrollText, Users, BarChart2, ArrowRight,
-  AlertTriangle, CheckCircle2, Clock, Plus, Eye, BookOpen,
+  CheckCircle2, Plus, Eye, BookOpen,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { formatDistanceToNow } from 'date-fns'
@@ -20,7 +20,6 @@ export default async function LecturerDashboardPage() {
     { count: questionCount },
     { data: myExams },
     { data: allResults },
-    { data: pendingAttempts },
   ] = await Promise.all([
     supabase
       .from('question_bank')
@@ -40,15 +39,8 @@ export default async function LecturerDashboardPage() {
     // Results for my exams (student perf data)
     supabase
       .from('results')
-      .select('exam_id, final_score, passed, released_at, student_id')
+      .select('exam_id, final_score, passed, student_id')
       .in('exam_id', []),  // placeholder — replaced below
-
-    // Attempts needing manual review
-    supabase
-      .from('attempts')
-      .select('id, exam_id, status, submitted_at, users:student_id ( full_name, matric_number )')
-      .in('status', ['submitted'])
-      .order('submitted_at', { ascending: true }),
   ])
 
   // Now fetch results properly scoped to lecturer's exams
@@ -56,21 +48,9 @@ export default async function LecturerDashboardPage() {
   const { data: resultsData } = myExamIds.length
     ? await supabase
         .from('results')
-        .select('exam_id, final_score, passed, released_at, student_id')
+        .select('exam_id, final_score, passed, student_id')
         .in('exam_id', myExamIds)
     : { data: [] }
-
-  // Manual grading check: responses with is_correct = null in lecturer's exams
-  const { data: needsReview } = myExamIds.length
-    ? await supabase
-        .from('responses')
-        .select('attempt_id, attempts!inner ( exam_id, student_id, users:student_id ( full_name, matric_number ) )')
-        .in('attempts.exam_id', myExamIds)
-        .is('is_correct', null)
-        .limit(20)
-    : { data: [] }
-
-  const needsReviewAttemptIds = new Set((needsReview ?? []).map(r => r.attempt_id))
 
   // ── Compute stats ────────────────────────────────────────────────────────────
   const liveExams      = (myExams ?? []).filter(e => e.status === 'live')
@@ -87,11 +67,10 @@ export default async function LecturerDashboardPage() {
   // Per-exam stats
   const examStatsMap = {}
   for (const r of resultsData ?? []) {
-    if (!examStatsMap[r.exam_id]) examStatsMap[r.exam_id] = { total: 0, passed: 0, sumScore: 0, unreleased: 0 }
+    if (!examStatsMap[r.exam_id]) examStatsMap[r.exam_id] = { total: 0, passed: 0, sumScore: 0 }
     examStatsMap[r.exam_id].total++
-    if (r.passed)       examStatsMap[r.exam_id].passed++
+    if (r.passed) examStatsMap[r.exam_id].passed++
     examStatsMap[r.exam_id].sumScore += r.final_score ?? 0
-    if (!r.released_at) examStatsMap[r.exam_id].unreleased++
   }
 
   // Identify at-risk students: failed any of my exams
@@ -99,15 +78,9 @@ export default async function LecturerDashboardPage() {
     (resultsData ?? []).filter(r => !r.passed).map(r => r.student_id)
   )
 
-  // Unreleased results that need attention
-  const examsWithUnreleasedResults = (myExams ?? []).filter(e => {
-    const s = examStatsMap[e.id]
-    return s && s.unreleased > 0 && e.status === 'closed'
-  })
-
   const enrichedExams = (myExams ?? []).map(e => {
     const totalMarks = (e.exam_questions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
-    const stats      = examStatsMap[e.id] ?? { total: 0, passed: 0, sumScore: 0, unreleased: 0 }
+    const stats      = examStatsMap[e.id] ?? { total: 0, passed: 0, sumScore: 0 }
     const passRate   = stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : null
     const avgScore   = stats.total > 0 ? Math.round(stats.sumScore / stats.total) : null
     return { ...e, totalMarks, stats, passRate, avgScore }
@@ -145,46 +118,6 @@ export default async function LecturerDashboardPage() {
             valueColor={overallPassRate !== null ? (overallPassRate >= 60 ? 'text-success' : 'text-danger') : undefined}
           />
         </div>
-
-        {/* Action alerts */}
-        {(needsReviewAttemptIds.size > 0 || examsWithUnreleasedResults.length > 0) && (
-          <div className="space-y-3">
-            {needsReviewAttemptIds.size > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-amber-800">
-                    {needsReviewAttemptIds.size} submission{needsReviewAttemptIds.size > 1 ? 's' : ''} need manual grading
-                  </p>
-                  <p className="text-xs text-amber-700 mt-0.5">Essay or short-answer questions are awaiting your review.</p>
-                </div>
-                <Link
-                  href="/lecturer/results"
-                  className="shrink-0 text-xs font-medium text-amber-800 underline"
-                >
-                  Grade now →
-                </Link>
-              </div>
-            )}
-            {examsWithUnreleasedResults.length > 0 && (
-              <div className="bg-primary-light border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                <Clock size={16} className="text-primary shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-primary">
-                    {examsWithUnreleasedResults.length} closed exam{examsWithUnreleasedResults.length > 1 ? 's' : ''} with unreleased results
-                  </p>
-                  <p className="text-xs text-primary/70 mt-0.5">Students are waiting — release when you're ready.</p>
-                </div>
-                <Link
-                  href="/lecturer/results"
-                  className="shrink-0 text-xs font-medium text-primary underline"
-                >
-                  Release →
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: exam pipeline + performance */}
@@ -274,7 +207,6 @@ export default async function LecturerDashboardPage() {
                 <HealthRow label="Passed"               value={passedResults}       max={totalStudentResults} color="success" />
                 <HealthRow label="Failed"               value={totalStudentResults - passedResults} max={totalStudentResults} color="danger" />
                 <HealthRow label="At-risk students"     value={atRiskStudentIds.size} max={null} alert={atRiskStudentIds.size > 0} />
-                <HealthRow label="Awaiting release"     value={(resultsData ?? []).filter(r => !r.released_at).length} max={null} />
               </div>
             </div>
 

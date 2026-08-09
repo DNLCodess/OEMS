@@ -52,7 +52,6 @@ export default async function AdminDashboardPage() {
     // Released results for pass rate computation
     supabase.from('results')
       .select('passed, exam_id')
-      .not('released_at', 'is', null)
       .in('exam_id',
         // subquery workaround — fetch exam ids first below
         ['00000000-0000-0000-0000-000000000000']
@@ -70,7 +69,7 @@ export default async function AdminDashboardPage() {
   const { data: uniResults } = uniExamIds.length
     ? await supabase
         .from('results')
-        .select('passed, released_at')
+        .select('passed')
         .in('exam_id', uniExamIds)
     : { data: [] }
 
@@ -98,7 +97,6 @@ export default async function AdminDashboardPage() {
   // Result health
   const totalResults    = (uniResults ?? []).length
   const passedResults   = (uniResults ?? []).filter(r => r.passed).length
-  const releasedResults = (uniResults ?? []).filter(r => r.released_at).length
   const overallPassRate = totalResults > 0 ? Math.round((passedResults / totalResults) * 100) : null
 
   const examStatusBreakdown = {
@@ -248,10 +246,6 @@ export default async function AdminDashboardPage() {
                     <p className="text-xl font-bold text-danger tabular-nums">{totalResults - passedResults}</p>
                     <p className="text-xs text-danger/70">Failed</p>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-xs py-2 border-t border-border">
-                  <span className="text-text-muted">Results released</span>
-                  <span className="font-medium text-text-primary">{releasedResults}/{totalResults}</span>
                 </div>
               </div>
             </div>

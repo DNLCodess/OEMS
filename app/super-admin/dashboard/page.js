@@ -36,7 +36,6 @@ export default async function SuperAdminDashboardPage() {
     // Results for pass rate
     supabase.from('results')
       .select('passed, exam_id')
-      .not('released_at', 'is', null)
       .limit(5000),
 
     // Latest exams platform-wide
