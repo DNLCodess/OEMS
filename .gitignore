@@ -48,6 +48,7 @@ AGENTS.md
 .claude/
 memory/
 oems_prd.md
+.mcp.json
 
 # git worktrees used for isolated feature work
 .worktrees/
