@@ -34,11 +34,10 @@ export function ExamSettingsForm({ courses, exam = null }) {
     defaultValues: exam
       ? {
           ...exam,
-          duration_minutes:    exam.duration_minutes,
-          pass_mark:           exam.pass_mark,
-          start_at:            exam.start_at ? exam.start_at.slice(0, 16) : '',
-          end_at:              exam.end_at   ? exam.end_at.slice(0, 16)   : '',
-          randomise_questions: exam.randomise_questions ?? false,
+          duration_minutes:     exam.duration_minutes,
+          entry_window_minutes: exam.entry_window_minutes ?? 10,
+          pass_mark:            exam.pass_mark,
+          randomise_questions:  exam.randomise_questions ?? false,
           randomise_options:   exam.randomise_options   ?? false,
           instructions:        exam.instructions ?? '',
           exam_mode:           exam.exam_mode ?? 'lab',
@@ -47,9 +46,10 @@ export function ExamSettingsForm({ courses, exam = null }) {
           tips:                exam.tips?.map(t => ({ value: t })) ?? [],
         }
       : {
-          academic_session:    CURRENT_SESSION,
-          duration_minutes:    60,
-          pass_mark:           40,
+          academic_session:     CURRENT_SESSION,
+          duration_minutes:     60,
+          entry_window_minutes: 10,
+          pass_mark:            40,
           randomise_questions: false,
           randomise_options:   false,
           instructions:        '',
@@ -68,8 +68,6 @@ export function ExamSettingsForm({ courses, exam = null }) {
   async function onSubmit(data) {
     const payload = {
       ...data,
-      start_at: data.start_at || null,
-      end_at:   data.end_at   || null,
       // Unwrap tips from { value } objects
       tips: (data.tips ?? []).map(t => t.value).filter(Boolean),
       // Proctoring UI has been retired — every exam is lab-delivered now.
@@ -152,6 +150,7 @@ export function ExamSettingsForm({ courses, exam = null }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Duration (minutes)" id="duration_minutes" type="number" required min={5} max={300}
+            hint="How long each student gets to answer, once they start."
             error={errors.duration_minutes?.message}
             {...register('duration_minutes')}
           />
@@ -165,15 +164,10 @@ export function ExamSettingsForm({ courses, exam = null }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Start Date & Time" id="start_at" type="datetime-local"
-            hint="Leave blank for manual activation."
-            error={errors.start_at?.message}
-            {...register('start_at')}
-          />
-          <Input
-            label="End Date & Time" id="end_at" type="datetime-local"
-            error={errors.end_at?.message}
-            {...register('end_at')}
+            label="Entry Window (minutes)" id="entry_window_minutes" type="number" required min={1} max={180}
+            hint="How long after you click Go Live new students may still start."
+            error={errors.entry_window_minutes?.message}
+            {...register('entry_window_minutes')}
           />
         </div>
       </section>
