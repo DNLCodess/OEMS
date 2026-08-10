@@ -14,7 +14,7 @@ const ROLE_HOME = {
   super_admin:  '/super-admin/dashboard',
   school_admin: '/admin/dashboard',
   lecturer:     '/lecturer/dashboard',
-  student:      '/student/dashboard',
+  student:      '/lab',
 }
 
 export async function proxy(request) {

@@ -3,27 +3,63 @@ import Link from 'next/link'
 import { CheckCircle2, XCircle, Clock, ChevronLeft, MessageSquare } from 'lucide-react'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Badge } from '@/components/ui/Badge'
 import { stripHtml } from '@/lib/utils'
+import { MatricEntryForm } from '../MatricEntryForm'
+import { Monitor } from 'lucide-react'
 
-export const metadata = { title: 'Exam Result' }
+export const metadata = { title: 'Exam Result — OEMS Lab' }
 
-export default async function ResultPage({ params }) {
-  const user     = await requireRole('student')
+export default async function LabResultPage({ params }) {
+  const { code } = await params
+  const upperCode = code.toUpperCase()
+
+  // Same unauthenticated-safe lookup pattern as the lobby: only the exam's
+  // existence is checked before authentication, via the admin client.
+  const adminClient = createAdminClient()
+  const { data: examBasic } = await adminClient
+    .from('exams')
+    .select('id')
+    .eq('access_code', upperCode)
+    .maybeSingle()
+
+  if (!examBasic) notFound()
+
   const supabase = await createClient()
-  const { id: examId } = await params
+  const { data: { user: authUser } } = await supabase.auth.getUser()
 
-  // Fetch exam
+  const isAuthedForThisExam =
+    authUser?.app_metadata?.session_channel === 'exam_access' &&
+    authUser?.app_metadata?.verified_exam_id === examBasic.id
+
+  if (!isAuthedForThisExam) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full">
+              <Monitor size={12} />
+              Lab Session · Code: {upperCode}
+            </span>
+          </div>
+          <MatricEntryForm code={upperCode} />
+        </div>
+      </div>
+    )
+  }
+
+  const user     = await requireRole('student')
+  const examId   = examBasic.id
+
   const { data: exam } = await supabase
     .from('exams')
     .select('id, title, pass_mark, duration_minutes, courses ( course_code )')
     .eq('id', examId)
-    .eq('university_id', user.university_id)
     .single()
 
   if (!exam) notFound()
 
-  // Fetch the student's attempt
   const { data: attempt } = await supabase
     .from('attempts')
     .select('id, status, submitted_at, total_score')
@@ -32,8 +68,9 @@ export default async function ResultPage({ params }) {
     .maybeSingle()
 
   // A submitted attempt normally has a result row by now (written in the
-  // same request that marks it submitted) — but this can legitimately be
-  // null in rare cases, so it's guarded below rather than assumed.
+  // same request that marks it submitted) — this guards a rare edge case
+  // (e.g. a transient DB error during submission) rather than a normal
+  // expected state.
   const { data: result } = await supabase
     .from('results')
     .select('final_score, passed')
@@ -41,7 +78,6 @@ export default async function ResultPage({ params }) {
     .eq('student_id', user.id)
     .maybeSingle()
 
-  // Fetch total possible marks
   const { data: examQuestions } = await supabase
     .from('exam_questions')
     .select('question_id, marks')
@@ -49,7 +85,6 @@ export default async function ResultPage({ params }) {
 
   const totalPossible = (examQuestions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
 
-  // If result released, fetch responses for breakdown
   let responses = []
   if (result && attempt) {
     const { data: rawResponses } = await supabase
@@ -72,7 +107,7 @@ export default async function ResultPage({ params }) {
         <p className="text-sm text-text-secondary mb-6">
           You haven't completed this exam yet.
         </p>
-        <Link href={`/student/exams/${examId}`} className="text-primary text-sm hover:underline">
+        <Link href={`/lab/${upperCode}`} className="text-primary text-sm hover:underline">
           Go to exam →
         </Link>
       </div>
@@ -80,10 +115,6 @@ export default async function ResultPage({ params }) {
   }
 
   // ── Result not yet available ───────────────────────────────────────────────
-  // Under normal operation, submitExam() writes the result row in the same
-  // request that marks the attempt submitted, so this should be momentary at
-  // most. It guards a rare edge case (e.g. a transient DB error during
-  // submission) rather than a normal expected state.
   if (!result) {
     return (
       <div className="max-w-lg mx-auto px-6 py-16 text-center">
@@ -92,8 +123,8 @@ export default async function ResultPage({ params }) {
         <p className="text-sm text-text-secondary mb-6">
           Your result is being finalized. Please check back shortly, or contact your exam officer if this persists.
         </p>
-        <Link href="/student/exams" className="text-primary text-sm hover:underline">
-          Back to my exams →
+        <Link href={`/lab/${upperCode}`} className="text-primary text-sm hover:underline">
+          Back to exam →
         </Link>
       </div>
     )
@@ -104,17 +135,14 @@ export default async function ResultPage({ params }) {
     ? Math.round((result.final_score / totalPossible) * 100)
     : 0
 
-  const autoGradedResponses = responses
-
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
-      {/* Back */}
       <Link
-        href="/student/exams"
+        href={`/lab/${upperCode}`}
         className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-6"
       >
         <ChevronLeft size={14} />
-        My Exams
+        Back to lab session
       </Link>
 
       {/* Score card */}
@@ -150,13 +178,13 @@ export default async function ResultPage({ params }) {
       </div>
 
       {/* Question breakdown */}
-      {autoGradedResponses.length > 0 && (
+      {responses.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-text-primary mb-4">
             Question Breakdown
           </h2>
           <div className="space-y-3">
-            {autoGradedResponses.map((r, index) => {
+            {responses.map((r) => {
               const qb = r.question_bank
               return (
                 <div
@@ -202,8 +230,8 @@ export default async function ResultPage({ params }) {
       )}
 
       <div className="mt-8 text-center">
-        <Link href="/student/exams" className="text-sm text-primary hover:underline">
-          ← Back to my exams
+        <Link href={`/lab/${upperCode}`} className="text-sm text-primary hover:underline">
+          ← Back to lab session
         </Link>
       </div>
     </div>

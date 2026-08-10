@@ -193,7 +193,7 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
 
     if (isAuto) toast.info('Your exam has been submitted.')
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-    router.push(labMode ? `/lab/${labCode}` : `/student/exams/${exam.id}/result`)
+    router.push(`/lab/${labCode}/result`)
   }
 
   function handleSubmitClick() {

@@ -29,18 +29,12 @@ const NAV = {
     { label: 'Exams',         href: '/lecturer/exams',     icon: ScrollText },
     { label: 'Results',       href: '/lecturer/results',   icon: BarChart2 },
   ],
-  student: [
-    { label: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
-    { label: 'My Exams',  href: '/student/exams',     icon: ClipboardList },
-    { label: 'Results',   href: '/student/results',   icon: BarChart2 },
-  ],
 }
 
 const ROLE_LABEL = {
   super_admin:  'Platform Admin',
   school_admin: 'Exam Officer',
   lecturer:     'Lecturer Portal',
-  student:      'Student Portal',
 }
 
 function NavLinks({ items, pathname, onNavigate }) {

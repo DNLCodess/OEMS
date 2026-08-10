@@ -170,7 +170,15 @@ export default async function LabLobbyPage({ params }) {
           {alreadyDone ? (
             <div className="space-y-4">
               <p className="text-sm text-text-secondary">You have already submitted this exam.</p>
-              <EndSessionButton code={upperCode} />
+              <div className="flex items-center justify-center gap-3">
+                <a
+                  href={`/lab/${upperCode}/result`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-xl hover:bg-primary-hover transition-colors"
+                >
+                  View my result
+                </a>
+                <EndSessionButton code={upperCode} />
+              </div>
             </div>
           ) : (
             <LabStartButton examId={exam.id} labCode={upperCode} />
