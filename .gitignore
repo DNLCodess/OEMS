@@ -49,6 +49,17 @@ AGENTS.md
 memory/
 oems_prd.md
 .mcp.json
+docs/PROJECT_WALKTHROUGH.md
+docs/WRITEUP_UPDATES_NEEDED.md
+
+# supabase CLI local link/cache — machine-specific, not project state
+supabase/.temp/
+
+# personal/academic documents — not code, don't belong in a code repo
+*.docx
+
+# generated locally, contains plaintext demo credentials
+seeding.md
 
 # git worktrees used for isolated feature work
 .worktrees/
