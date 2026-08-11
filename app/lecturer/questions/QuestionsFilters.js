@@ -61,7 +61,7 @@ export function QuestionsFilters({ courses }) {
       <select
         value={params.get('course') ?? ''}
         onChange={e => update('course', e.target.value)}
-        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-border-focus cursor-pointer"
+        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary appearance-none focus:outline-none focus:border-border-focus cursor-pointer"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat',
@@ -78,7 +78,7 @@ export function QuestionsFilters({ courses }) {
       <select
         value={params.get('type') ?? ''}
         onChange={e => update('type', e.target.value)}
-        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-border-focus cursor-pointer"
+        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary appearance-none focus:outline-none focus:border-border-focus cursor-pointer"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat',
@@ -93,7 +93,7 @@ export function QuestionsFilters({ courses }) {
       <select
         value={params.get('difficulty') ?? ''}
         onChange={e => update('difficulty', e.target.value)}
-        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-border-focus cursor-pointer"
+        className="py-2 pl-3 pr-8 text-sm rounded-lg border border-border bg-surface text-text-primary appearance-none focus:outline-none focus:border-border-focus cursor-pointer"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat',
