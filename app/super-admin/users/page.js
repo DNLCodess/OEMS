@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SuperAdminUserActions } from './SuperAdminUserActions'
 
 export const metadata = { title: 'All Users — OEMS' }
 
@@ -21,12 +22,13 @@ const ROLE_COLORS = {
 }
 
 export default async function SuperAdminUsersPage() {
-  await requireRole('super_admin')
+  const user     = await requireRole('super_admin')
   const supabase = await createClient()
 
   const { data: users } = await supabase
     .from('users')
-    .select('id, full_name, email, role, matric_number, is_active, created_at, universities ( name )')
+    .select('id, full_name, email, role, matric_number, is_active, removed_at, created_at, universities ( name )')
+    .neq('id', user.id)
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -49,6 +51,7 @@ export default async function SuperAdminUsersPage() {
                   <th className="text-left text-xs font-medium text-text-muted px-4 py-3">Role</th>
                   <th className="text-left text-xs font-medium text-text-muted px-4 py-3 hidden md:table-cell">University</th>
                   <th className="text-left text-xs font-medium text-text-muted px-4 py-3">Status</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -70,11 +73,22 @@ export default async function SuperAdminUsersPage() {
                       {u.universities?.name ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
-                        u.is_active ? 'bg-success-light text-success' : 'bg-slate-100 text-text-muted'
-                      }`}>
-                        {u.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      {u.removed_at ? (
+                        <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-danger-light text-danger">
+                          Removed
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
+                          u.is_active ? 'bg-success-light text-success' : 'bg-slate-100 text-text-muted'
+                        }`}>
+                          {u.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {!u.removed_at && (
+                        <SuperAdminUserActions userId={u.id} userName={u.full_name} isActive={u.is_active} />
+                      )}
                     </td>
                   </tr>
                 ))}
