@@ -96,16 +96,14 @@ export function QuestionForm({ question, courses }) {
   const onSubmit = async (data) => {
     setSaving(true)
     try {
-      const payload = {
-        ...data,
-        tags: data.tags
-          ? data.tags.split(',').map(t => t.trim()).filter(Boolean)
-          : [],
-      }
-
+      // tags stays a raw comma-separated string here, matching questionSchema —
+      // the server (parsePayload in lib/actions/questions.js) splits it into
+      // an array. Splitting it on the client before sending would make the
+      // payload fail that same schema's re-validation on the server, since
+      // an array no longer matches `tags: z.string().optional()`.
       const result = isEdit
-        ? await updateQuestion(question.id, payload)
-        : await createQuestion(payload)
+        ? await updateQuestion(question.id, data)
+        : await createQuestion(data)
 
       if (result?.error) {
         toast.error(result.error)

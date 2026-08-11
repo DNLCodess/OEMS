@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useState } from 'react'
-import { examSettingsSchema } from '@/lib/validations/exams'
+import { examSettingsFormSchema } from '@/lib/validations/exams'
 import { createExam, updateExamSettings } from '@/lib/actions/exams'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -29,7 +29,7 @@ export function ExamSettingsForm({ courses, exam = null }) {
     control,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(examSettingsSchema),
+    resolver: zodResolver(examSettingsFormSchema),
     mode: 'onBlur',
     defaultValues: exam
       ? {
