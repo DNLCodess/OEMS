@@ -6,15 +6,17 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, BookOpen, ClipboardList,
   BarChart2, GraduationCap, Building2, Settings,
-  FileQuestion, ScrollText, LogOut, Menu, X,
+  FileQuestion, ScrollText, LogOut, Menu, X, History,
 } from 'lucide-react'
 import { signOut } from '@/lib/actions/auth'
 
 const NAV = {
   super_admin: [
-    { label: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
-    { label: 'All Users', href: '/super-admin/users',     icon: Users },
-    { label: 'Settings',  href: '/super-admin/settings',  icon: Settings },
+    { label: 'Dashboard',    href: '/super-admin/dashboard',    icon: LayoutDashboard },
+    { label: 'Universities', href: '/super-admin/universities', icon: Building2 },
+    { label: 'All Users',    href: '/super-admin/users',        icon: Users },
+    { label: 'Logs',         href: '/super-admin/logs',         icon: History },
+    { label: 'Settings',     href: '/super-admin/settings',     icon: Settings },
   ],
   school_admin: [
     { label: 'Dashboard',         href: '/admin/dashboard',  icon: LayoutDashboard },
@@ -22,6 +24,7 @@ const NAV = {
     { label: 'Faculties & Depts', href: '/admin/structure',   icon: Building2 },
     { label: 'Courses',           href: '/admin/courses',     icon: BookOpen },
     { label: 'Exam Oversight',    href: '/admin/exams',       icon: ClipboardList },
+    { label: 'Logs',              href: '/admin/logs',        icon: History },
   ],
   lecturer: [
     { label: 'Dashboard',     href: '/lecturer/dashboard', icon: LayoutDashboard },
