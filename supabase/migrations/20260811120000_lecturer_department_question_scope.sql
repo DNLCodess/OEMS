@@ -19,7 +19,7 @@ $$;
 DROP POLICY IF EXISTS "lecturer_read_university_questions" ON question_bank;
 
 CREATE POLICY "lecturer_read_department_questions" ON question_bank
-  FOR SELECT
+  FOR SELECT TO authenticated
   USING (
     university_id = auth_university_id()
     AND auth_role() = 'lecturer'
