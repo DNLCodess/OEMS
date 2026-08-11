@@ -16,6 +16,8 @@ import { RichTextEditor } from '@/components/questions/RichTextEditor'
 import { TypeSelector } from '@/components/questions/TypeSelector'
 import { AnswerOptions, TrueFalseSelector } from '@/components/questions/AnswerOptions'
 import { QuestionPreview } from '@/components/questions/QuestionPreview'
+import { useFormDraft } from '@/lib/hooks/useFormDraft'
+import { DraftBanner } from '@/components/shared/DraftBanner'
 
 const DIFFICULTY_OPTIONS = [
   { value: 'easy',   label: 'Easy',   activeClass: 'bg-success-light text-success border-success/30' },
@@ -55,7 +57,7 @@ function buildDefaults(question) {
   }
 }
 
-export function QuestionForm({ question, courses }) {
+export function QuestionForm({ question, courses, lecturerId }) {
   const router = useRouter()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -68,11 +70,15 @@ export function QuestionForm({ question, courses }) {
     watch,
     setValue,
     reset,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(questionSchema),
     defaultValues: buildDefaults(question),
   })
+
+  const draftKey = `oems:draft:${lecturerId}:question:${question?.id ?? 'new'}`
+  const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
 
   const watchedType = watch('type')
   const watchedValues = watch()
@@ -109,6 +115,7 @@ export function QuestionForm({ question, courses }) {
         toast.error(result.error)
       } else {
         toast.success(isEdit ? 'Question updated' : 'Question saved')
+        clearDraft()
         router.push('/lecturer/questions')
         router.refresh()
       }
@@ -117,6 +124,12 @@ export function QuestionForm({ question, courses }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleDiscardDraft() {
+    clearDraft()
+    reset(buildDefaults(question))
+    dismissRestored()
   }
 
   const showOptions       = ['mcq', 'multi_select'].includes(watchedType)
@@ -157,6 +170,9 @@ export function QuestionForm({ question, courses }) {
 
         {/* ── Form body ─────────────────────────────────────────────── */}
         <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+          {restored && (
+            <DraftBanner onDiscard={handleDiscardDraft} onDismiss={dismissRestored} />
+          )}
 
           {/* Section 1: Course + Type + Difficulty */}
           <section className="space-y-5">

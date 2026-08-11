@@ -31,5 +31,5 @@ export default async function EditQuestionPage({ params }) {
 
   if (!question) notFound()
 
-  return <QuestionForm question={question} courses={courses ?? []} />
+  return <QuestionForm question={question} courses={courses ?? []} lecturerId={user.id} />
 }

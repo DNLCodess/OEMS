@@ -36,5 +36,5 @@ export default async function NewQuestionPage() {
     )
   }
 
-  return <QuestionForm courses={courses} />
+  return <QuestionForm courses={courses} lecturerId={user.id} />
 }
