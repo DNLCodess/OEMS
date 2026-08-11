@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { ExamInterface } from '@/components/student/ExamInterface'
+import { submitExam } from '@/lib/actions/attempts'
 
 export const metadata = { title: 'Exam — OEMS Lab' }
 
@@ -37,7 +38,17 @@ export default async function LabAttemptPage({ params }) {
   }
 
   if (exam.status !== 'live') {
-    redirect(`/lab/${code}`)
+    // The lecturer closed the exam (or otherwise moved it off 'live') while
+    // this student was still mid-attempt. WorkflowPanel's own confirmation
+    // text already promises that closing "stops all ongoing attempts" —
+    // this is what actually makes that true, instead of just silently
+    // bouncing the student back to the lobby with their attempt stuck
+    // in_progress forever and no result. submitExam runs in this same
+    // student's own request context (same session cookies), so its own
+    // requireRole('student') + student_id ownership check resolve exactly
+    // as they would if the student had clicked Submit themselves.
+    await submitExam(attempt.id)
+    redirect(`/lab/${code}/result`)
   }
 
   const { data: rawQuestions } = await supabase

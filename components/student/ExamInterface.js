@@ -251,69 +251,77 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
       <div className={`flex-1 flex flex-col min-w-0 ${showWarning ? 'pt-14' : ''}`}>
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-3 bg-surface border-b border-border shrink-0">
-          <div className="min-w-0 flex-1 mr-4">
-            <p className="text-sm font-semibold text-text-primary truncate">{exam.title}</p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-text-muted">
-                Question {state.currentIndex + 1} of {total} · {answeredCount} answered
-              </p>
-              {saveStatus === 'saving' && (
-                <span className="flex items-center gap-1 text-xs text-text-muted">
-                  <Loader2 size={10} className="animate-spin" />
-                  Saving…
-                </span>
+        <div className="bg-surface border-b border-border shrink-0">
+          <div className="flex items-center justify-between px-4 md:px-6 py-3">
+            <div className="min-w-0 flex-1 mr-4">
+              <p className="text-sm font-semibold text-text-primary truncate">{exam.title}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-text-muted">
+                  Question {state.currentIndex + 1} of {total} · {answeredCount} answered
+                </p>
+                {saveStatus === 'saving' && (
+                  <span className="flex items-center gap-1 text-xs text-text-muted">
+                    <Loader2 size={10} className="animate-spin" />
+                    Saving…
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="flex items-center gap-1 text-xs text-success">
+                    <Check size={10} />
+                    Saved
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Mobile question nav trigger */}
+              <button
+                onClick={() => setShowMobileNav(true)}
+                className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-text-secondary hover:bg-slate-50 transition-colors"
+              >
+                <LayoutGrid size={13} />
+                Questions
+              </button>
+              {/* Tool buttons */}
+              {exam.tips?.length > 0 && (
+                <button
+                  onClick={() => setShowTips(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    showTips
+                      ? 'bg-amber-100 border-amber-300 text-amber-800'
+                      : 'border-border text-text-secondary hover:bg-slate-50'
+                  }`}
+                  title="Exam tips"
+                >
+                  <Lightbulb size={13} />
+                  <span className="hidden sm:inline">Tips</span>
+                </button>
               )}
-              {saveStatus === 'saved' && (
-                <span className="flex items-center gap-1 text-xs text-success">
-                  <Check size={10} />
-                  Saved
-                </span>
+              {exam.show_calculator && (
+                <button
+                  onClick={() => setShowCalc(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    showCalc
+                      ? 'bg-primary-light border-primary/30 text-primary'
+                      : 'border-border text-text-secondary hover:bg-slate-50'
+                  }`}
+                  title="Calculator"
+                >
+                  <Calculator size={13} />
+                  <span className="hidden sm:inline">Calc</span>
+                </button>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Mobile question nav trigger */}
-            <button
-              onClick={() => setShowMobileNav(true)}
-              className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-text-secondary hover:bg-slate-50 transition-colors"
-            >
-              <LayoutGrid size={13} />
-              Questions
-            </button>
-            {/* Tool buttons */}
-            {exam.tips?.length > 0 && (
-              <button
-                onClick={() => setShowTips(v => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                  showTips
-                    ? 'bg-amber-100 border-amber-300 text-amber-800'
-                    : 'border-border text-text-secondary hover:bg-slate-50'
-                }`}
-                title="Exam tips"
-              >
-                <Lightbulb size={13} />
-                <span className="hidden sm:inline">Tips</span>
-              </button>
-            )}
-            {exam.show_calculator && (
-              <button
-                onClick={() => setShowCalc(v => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                  showCalc
-                    ? 'bg-primary-light border-primary/30 text-primary'
-                    : 'border-border text-text-secondary hover:bg-slate-50'
-                }`}
-                title="Calculator"
-              >
-                <Calculator size={13} />
-                <span className="hidden sm:inline">Calc</span>
-              </button>
-            )}
-            {/* Mobile timer */}
-            <div className="lg:hidden">
-              <ExamTimer timeRemaining={state.timeRemaining} />
-            </div>
+
+          {/* Mobile timer — its own full-width row so it reads as the most
+              important thing in the header instead of blending into the
+              button row above. It's part of this persistent, non-scrolling
+              top bar (not a fixed overlay), so it can never cover question
+              content — it just adds normal header height, same as the
+              desktop sidebar already dedicates its own top slot to it. */}
+          <div className="lg:hidden px-4 pb-3 flex justify-center">
+            <ExamTimer timeRemaining={state.timeRemaining} />
           </div>
         </div>
 
