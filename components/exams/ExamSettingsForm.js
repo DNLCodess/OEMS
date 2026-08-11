@@ -15,10 +15,42 @@ import {
   Calculator, Lightbulb,
   Plus, Trash2, Info,
 } from 'lucide-react'
+import { useFormDraft } from '@/lib/hooks/useFormDraft'
+import { DraftBanner } from '@/components/shared/DraftBanner'
 
 const CURRENT_SESSION = new Date().getFullYear() + '/' + (new Date().getFullYear() + 1)
 
-export function ExamSettingsForm({ courses, exam = null }) {
+function buildDefaults(exam) {
+  return exam
+    ? {
+        ...exam,
+        duration_minutes:     exam.duration_minutes,
+        entry_window_minutes: exam.entry_window_minutes ?? 10,
+        pass_mark:            exam.pass_mark,
+        randomise_questions:  exam.randomise_questions ?? false,
+        randomise_options:   exam.randomise_options   ?? false,
+        instructions:        exam.instructions ?? '',
+        exam_mode:           exam.exam_mode ?? 'lab',
+        proctoring_enabled:  exam.proctoring_enabled ?? false,
+        show_calculator:     exam.show_calculator ?? false,
+        tips:                exam.tips?.map(t => ({ value: t })) ?? [],
+      }
+    : {
+        academic_session:     CURRENT_SESSION,
+        duration_minutes:     60,
+        entry_window_minutes: 10,
+        pass_mark:            40,
+        randomise_questions: false,
+        randomise_options:   false,
+        instructions:        '',
+        exam_mode:           'lab',
+        proctoring_enabled:  false,
+        show_calculator:     false,
+        tips:                [],
+      }
+}
+
+export function ExamSettingsForm({ courses, exam = null, lecturerId }) {
   const router = useRouter()
   const isEdit = !!exam
 
@@ -27,43 +59,28 @@ export function ExamSettingsForm({ courses, exam = null }) {
     handleSubmit,
     watch,
     control,
+    reset,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(examSettingsFormSchema),
     mode: 'onBlur',
-    defaultValues: exam
-      ? {
-          ...exam,
-          duration_minutes:     exam.duration_minutes,
-          entry_window_minutes: exam.entry_window_minutes ?? 10,
-          pass_mark:            exam.pass_mark,
-          randomise_questions:  exam.randomise_questions ?? false,
-          randomise_options:   exam.randomise_options   ?? false,
-          instructions:        exam.instructions ?? '',
-          exam_mode:           exam.exam_mode ?? 'lab',
-          proctoring_enabled:  exam.proctoring_enabled ?? false,
-          show_calculator:     exam.show_calculator ?? false,
-          tips:                exam.tips?.map(t => ({ value: t })) ?? [],
-        }
-      : {
-          academic_session:     CURRENT_SESSION,
-          duration_minutes:     60,
-          entry_window_minutes: 10,
-          pass_mark:            40,
-          randomise_questions: false,
-          randomise_options:   false,
-          instructions:        '',
-          exam_mode:           'lab',
-          proctoring_enabled:  false,
-          show_calculator:     false,
-          tips:                [],
-        },
+    defaultValues: buildDefaults(exam),
   })
 
   const { fields: tipFields, append: appendTip, remove: removeTip } = useFieldArray({
     control,
     name: 'tips',
   })
+
+  const draftKey = `oems:draft:${lecturerId}:exam:${exam?.id ?? 'new'}`
+  const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
+
+  function handleDiscardDraft() {
+    clearDraft()
+    reset(buildDefaults(exam))
+    dismissRestored()
+  }
 
   async function onSubmit(data) {
     const payload = {
@@ -84,12 +101,17 @@ export function ExamSettingsForm({ courses, exam = null }) {
     }
 
     toast.success(isEdit ? 'Exam settings saved.' : 'Exam created.')
+    clearDraft()
     router.push(`/lecturer/exams/${result.id}`)
     router.refresh()
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
+      {restored && (
+        <DraftBanner onDiscard={handleDiscardDraft} onDismiss={dismissRestored} />
+      )}
+
       {/* ── Basic info ──────────────────────────────────────────────────────── */}
       <section className="bg-surface border border-border rounded-xl p-6 space-y-5">
         <h2 className="text-base font-semibold text-text-primary">Basic Information</h2>

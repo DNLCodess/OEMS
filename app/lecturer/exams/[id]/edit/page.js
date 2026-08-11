@@ -57,7 +57,7 @@ export default async function EditExamPage({ params }) {
         <p className="text-sm text-text-secondary mt-1">{exam.title}</p>
       </div>
 
-      <ExamSettingsForm courses={courses ?? []} exam={exam} />
+      <ExamSettingsForm courses={courses ?? []} exam={exam} lecturerId={user.id} />
     </div>
   )
 }

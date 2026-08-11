@@ -50,7 +50,7 @@ export default async function NewExamPage() {
         </p>
       </div>
 
-      <ExamSettingsForm courses={courses} />
+      <ExamSettingsForm courses={courses} lecturerId={user.id} />
     </div>
   )
 }
