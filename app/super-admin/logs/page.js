@@ -7,25 +7,34 @@ import { EmptyState } from '@/components/ui/EmptyState'
 export const metadata = { title: 'Activity Log — OEMS' }
 
 const ACTION_LABELS = {
-  activated:   'Activated',
-  deactivated: 'Deactivated',
-  removed:     'Removed',
+  activated:    'Activated',
+  deactivated:  'Deactivated',
+  removed:      'Removed',
+  logged_in:    'Logged in',
+  logged_out:   'Logged out',
+  login_failed: 'Login failed',
 }
 
 const ACTION_COLORS = {
-  activated:   'bg-success-light text-success',
-  deactivated: 'bg-slate-100 text-text-muted',
-  removed:     'bg-danger-light text-danger',
+  activated:    'bg-success-light text-success',
+  deactivated:  'bg-slate-100 text-text-muted',
+  removed:      'bg-danger-light text-danger',
+  logged_in:    'bg-success-light text-success',
+  logged_out:   'bg-slate-100 text-text-muted',
+  login_failed: 'bg-danger-light text-danger',
 }
 
-export default async function SuperAdminLogsPage() {
+const STAFF_ROLES = ['lecturer', 'school_admin', 'super_admin']
+
+export default async function SuperAdminLogsPage({ searchParams }) {
   await requireRole('super_admin')
   const supabase = await createClient()
+  const { role: roleFilter } = await searchParams
 
-  const { data: logs } = await supabase
+  let query = supabase
     .from('admin_action_log')
     .select(`
-      id, action, created_at,
+      id, action, created_at, subject_role, target_identifier,
       actor:actor_id ( full_name ),
       target:target_user_id ( full_name ),
       universities:university_id ( name )
@@ -33,12 +42,32 @@ export default async function SuperAdminLogsPage() {
     .order('created_at', { ascending: false })
     .limit(200)
 
+  if (roleFilter === 'staff') query = query.in('subject_role', STAFF_ROLES)
+  if (roleFilter === 'students') query = query.eq('subject_role', 'student')
+
+  const { data: logs } = await query
+
   return (
     <>
-      <TopBar title="Activity Log" subtitle="Account actions across the platform" />
-      <main className="flex-1 p-6">
+      <TopBar title="Activity Log" subtitle="Account actions and sign-ins across the platform" />
+      <main className="flex-1 p-6 space-y-4">
+        <form className="flex items-center gap-2">
+          <label htmlFor="role" className="text-xs font-medium text-text-muted">Show</label>
+          <select
+            id="role"
+            name="role"
+            defaultValue={roleFilter ?? ''}
+            className="text-sm border border-border rounded-lg px-2.5 py-1.5 bg-surface"
+          >
+            <option value="">All</option>
+            <option value="staff">Staff</option>
+            <option value="students">Students</option>
+          </select>
+          <button type="submit" className="text-xs font-medium text-primary hover:underline">Apply</button>
+        </form>
+
         {!logs?.length ? (
-          <EmptyState icon={History} title="No activity yet" description="Account actions (activate, deactivate, remove) will appear here." />
+          <EmptyState icon={History} title="No activity yet" description="Account actions and sign-ins will appear here." />
         ) : (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
@@ -57,13 +86,15 @@ export default async function SuperAdminLogsPage() {
                     <td className="px-4 py-3 text-text-muted text-xs whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">{log.actor?.full_name ?? 'Unknown'}</td>
+                    <td className="px-4 py-3 text-text-secondary">{log.actor?.full_name ?? '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${ACTION_COLORS[log.action] ?? 'bg-slate-100 text-slate-600'}`}>
                         {ACTION_LABELS[log.action] ?? log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-text-primary">{log.target?.full_name ?? 'Unknown'}</td>
+                    <td className="px-4 py-3 font-medium text-text-primary">
+                      {log.target?.full_name ?? log.target_identifier ?? 'Unknown'}
+                    </td>
                     <td className="px-4 py-3 text-text-muted text-xs hidden md:table-cell">
                       {log.universities?.name ?? '—'}
                     </td>
