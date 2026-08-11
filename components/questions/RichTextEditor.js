@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -35,6 +36,25 @@ export function RichTextEditor({
       onBlur?.(event)
     },
   })
+
+  // Sync external `value` changes (e.g. a form-level `reset()` call from draft
+  // restore or "discard draft") into the already-mounted Tiptap instance.
+  // Tiptap's `content` option is only read once at mount, so without this the
+  // editor keeps showing stale content whenever `value` changes on a later
+  // render instead of via the user's own typing.
+  //
+  // Normalization mirrors `onUpdate` above (empty text -> '', not '<p></p>')
+  // so this effect only fires on genuine external changes, never as a result
+  // of the editor's own `onChange` round-trip — that would fight the user's
+  // typing and reset cursor position.
+  useEffect(() => {
+    if (!editor) return
+    const currentHtml = editor.getText().trim() ? editor.getHTML() : ''
+    const nextValue = value || ''
+    if (nextValue !== currentHtml) {
+      editor.commands.setContent(nextValue, { emitUpdate: false })
+    }
+  }, [value, editor])
 
   const ToolbarButton = ({ onClick, active, title, children }) => (
     <button
