@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { CreateFacultyForm, CreateDepartmentForm } from './StructureForms'
 import { Building2, ChevronRight } from 'lucide-react'
 
@@ -10,7 +11,10 @@ export default async function AdminStructurePage() {
   const user     = await requireRole('school_admin')
   const supabase = await createClient()
 
-  const [{ data: faculties }, { data: departments }] = await Promise.all([
+  const [
+    { data: faculties, error: facultiesError },
+    { data: departments, error: departmentsError },
+  ] = await Promise.all([
     supabase
       .from('faculties')
       .select('id, name')
@@ -22,6 +26,9 @@ export default async function AdminStructurePage() {
       .eq('university_id', user.university_id)
       .order('name'),
   ])
+
+  const structureError = facultiesError || departmentsError
+  if (structureError) console.error('[AdminStructurePage]', structureError)
 
   // Group departments by faculty
   const deptsByFaculty = {}
@@ -55,7 +62,9 @@ export default async function AdminStructurePage() {
               </span>
             </h2>
 
-            {!faculties?.length ? (
+            {structureError ? (
+              <QueryErrorBanner message="Failed to load faculties and departments. Please refresh." />
+            ) : !faculties?.length ? (
               <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
                 <Building2 size={32} className="text-text-muted mb-3" />
                 <p className="text-sm font-medium text-text-primary mb-1">No structure yet</p>
