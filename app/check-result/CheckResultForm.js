@@ -4,11 +4,12 @@ import { useActionState } from 'react'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { verifyResultAccess } from '@/lib/actions/studentAuth'
 
-export function CheckResultForm() {
+export function CheckResultForm({ universitySlug }) {
   const [state, formAction, pending] = useActionState(verifyResultAccess, null)
 
   return (
     <form action={formAction} className="space-y-5">
+      {universitySlug && <input type="hidden" name="university_slug" value={universitySlug} />}
       <div>
         <label htmlFor="matric_number" className="block text-sm font-medium text-text-primary mb-2">
           Matric Number

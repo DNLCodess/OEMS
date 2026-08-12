@@ -1,12 +1,27 @@
+import { notFound } from 'next/navigation'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
-import { CheckResultForm } from './CheckResultForm'
-import { CheckAnotherResultButton } from './CheckAnotherResultButton'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { CheckResultForm } from '../CheckResultForm'
+import { CheckAnotherResultButton } from '../CheckAnotherResultButton'
 import { ResultsList } from '@/components/student/ResultsList'
+import { UniversityBadge } from '@/components/shared/UniversityBadge'
+import { getUniversityThemeStyle } from '@/lib/universityTheme'
 
 export const metadata = { title: 'Check Result — OEMS' }
 
-export default async function CheckResultPage() {
+export default async function UniversityCheckResultPage({ params }) {
+  const { slug } = await params
+  const adminClient = createAdminClient()
+  const { data: university } = await adminClient
+    .from('universities')
+    .select('id, name, logo_url, primary_color')
+    .eq('subdomain', slug.toLowerCase())
+    .maybeSingle()
+
+  if (!university) notFound()
+
+  const themeStyle = getUniversityThemeStyle(university)
   const supabase = await createClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
 
@@ -14,27 +29,21 @@ export default async function CheckResultPage() {
 
   if (!isResultLookupSession) {
     return (
-      <div className="flex-1 flex items-center justify-center px-4 py-16">
+      <div className="flex-1 flex items-center justify-center px-4 py-16" style={themeStyle}>
         <div className="w-full max-w-sm">
+          <UniversityBadge university={university} />
           <div className="text-center mb-10">
-            <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-primary text-white text-2xl font-bold mb-4">
-              O
-            </div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">Check Your Result</h1>
             <p className="text-sm text-text-muted mt-1">
               Enter your matric number and date of birth
             </p>
           </div>
-
-          <CheckResultForm />
+          <CheckResultForm universitySlug={slug.toLowerCase()} />
         </div>
       </div>
     )
   }
 
-  // Verified for result lookup — show this student's own results only.
-  // Deliberately minimal: no trend indicators, no per-course averages, no
-  // browsing into other exams. Just what a matric+DOB lookup is for.
   const user = await requireRole('student')
 
   const { data: results } = await supabase
@@ -58,7 +67,7 @@ export default async function CheckResultPage() {
   })
 
   return (
-    <div className="flex-1 px-4 py-16">
+    <div className="flex-1 px-4 py-16" style={themeStyle}>
       <ResultsList user={user} results={enriched} />
       <div className="text-center">
         <CheckAnotherResultButton />

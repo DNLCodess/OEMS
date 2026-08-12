@@ -7,8 +7,9 @@ import { SubmitButton } from '@/components/ui/Button'
 import { forgotPassword } from '@/lib/actions/auth'
 import { MailCheck } from 'lucide-react'
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ universitySlug }) {
   const [state, formAction] = useActionState(forgotPassword, null)
+  const loginHref = universitySlug ? `/${universitySlug}/login` : '/login'
 
   if (state?.success) {
     return (
@@ -21,7 +22,7 @@ export function ForgotPasswordForm() {
           If that email is registered, you&apos;ll receive a reset link shortly. Check your inbox and spam folder.
         </p>
         <Link
-          href="/login"
+          href={loginHref}
           className="inline-block mt-6 text-sm text-primary hover:text-primary-hover underline underline-offset-2"
         >
           Back to sign in
@@ -62,7 +63,7 @@ export function ForgotPasswordForm() {
 
       <div className="mt-5 text-center">
         <Link
-          href="/login"
+          href={loginHref}
           className="text-sm text-text-secondary hover:text-text-primary underline underline-offset-2"
         >
           Back to sign in

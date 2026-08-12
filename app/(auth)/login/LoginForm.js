@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/ui/Button'
 import { signIn } from '@/lib/actions/auth'
 import { use } from 'react'
 
-export function LoginForm({ searchParams }) {
+export function LoginForm({ searchParams, universitySlug }) {
   const params = use(searchParams)
   const [state, formAction] = useActionState(signIn, null)
 
@@ -34,6 +34,7 @@ export function LoginForm({ searchParams }) {
       )}
 
       <form action={formAction} noValidate className="space-y-4">
+        {universitySlug && <input type="hidden" name="university_slug" value={universitySlug} />}
         <Input
           id="email"
           name="email"
@@ -70,7 +71,7 @@ export function LoginForm({ searchParams }) {
 
       <div className="mt-5 text-center">
         <Link
-          href="/forgot-password"
+          href={universitySlug ? `/${universitySlug}/forgot-password` : '/forgot-password'}
           className="text-sm text-primary hover:text-primary-hover underline underline-offset-2"
         >
           Forgot your password?
