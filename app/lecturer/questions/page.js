@@ -19,11 +19,12 @@ export default async function QuestionsPage({ searchParams }) {
   const { course: courseId, type, difficulty, q: search } = params
 
   // Fetch all courses in this university for the filter bar
-  const { data: courses } = await supabase
+  const { data: courses, error: coursesError } = await supabase
     .from('courses')
     .select('id, course_code, course_title')
     .eq('university_id', user.university_id)
     .order('course_code')
+  if (coursesError) console.error('[QuestionsPage]', coursesError)
 
   // Fetch questions with filters
   let query = supabase
@@ -59,6 +60,7 @@ export default async function QuestionsPage({ searchParams }) {
         actions={addAction}
       />
       <main className="flex-1 p-6 space-y-5">
+        {coursesError && <QueryErrorBanner message="Failed to load course filters. Please refresh." />}
         <QuestionsFilters courses={courses ?? []} />
 
         {error && <QueryErrorBanner message="Failed to load questions. Please refresh." />}
