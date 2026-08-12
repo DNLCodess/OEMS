@@ -16,22 +16,10 @@ import { Calculator as CalculatorPanel } from '@/components/student/Calculator'
 import { TipsPanel } from '@/components/student/TipsPanel'
 import { ProctoringCamera } from '@/components/student/ProctoringCamera'
 import { saveAnswer, submitExam } from '@/lib/actions/attempts'
+import { buildAttemptState, serializeAttemptDraft } from '@/lib/exam/attemptDraft'
+import { writeDraft, clearDraft } from '@/lib/hooks/formDraftStorage'
 
 // ─── State ───────────────────────────────────────────────────────────────────
-
-function buildInitialState(responses, startedAt, durationMinutes) {
-  const answers = {}
-  for (const r of responses) {
-    answers[r.question_id] = r.student_answer
-  }
-  const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-  return {
-    currentIndex:  0,
-    answers,
-    flagged:       new Set(),
-    timeRemaining: Math.max(0, durationMinutes * 60 - elapsed),
-  }
-}
 
 function reducer(state, action) {
   switch (action.type) {
@@ -55,11 +43,12 @@ function reducer(state, action) {
 
 export function ExamInterface({ exam, questions, attemptId, studentId, startedAt, responses, labMode = false, labCode }) {
   const router = useRouter()
+  const draftKey = `oems:exam:${attemptId}`
 
   const [state, dispatch] = useReducer(
     reducer,
     null,
-    () => buildInitialState(responses, startedAt, exam.duration_minutes)
+    () => buildAttemptState(attemptId, responses, startedAt, exam.duration_minutes)
   )
 
   const [submitting,    setSubmitting]    = useState(false)
@@ -68,7 +57,7 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   const [violations,    setViolations]    = useState(0)
   const [showWarning,   setShowWarning]   = useState(false)
   const [warningMsg,    setWarningMsg]    = useState('')
-  const [saveStatus,    setSaveStatus]    = useState(null) // 'saving' | 'saved' | null
+  const [saveStatus,    setSaveStatus]    = useState({}) // { [questionId]: 'saving' | 'saved' | 'error' }
   const [showCalc,      setShowCalc]      = useState(false)
   const [showTips,      setShowTips]      = useState(false)
 
@@ -77,6 +66,16 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   const saveTimers     = useRef({})
   const answersRef     = useRef(state.answers)
   useEffect(() => { answersRef.current = state.answers }, [state.answers])
+
+  // ── Local draft persistence ─────────────────────────────────────────────────
+  // Writes on every state change — not debounced like the server save, since
+  // a localStorage write is cheap and the whole point is zero-latency
+  // durability against a refresh or crash. timeRemaining is deliberately
+  // excluded (see serializeAttemptDraft) — it's always recomputed from the
+  // server-authoritative startedAt on the next mount, never trusted from here.
+  useEffect(() => {
+    writeDraft(draftKey, serializeAttemptDraft(state))
+  }, [state, draftKey])
 
   // ── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -142,12 +141,9 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
     })
   }
 
-  // ── Answer save (debounced) ─────────────────────────────────────────────────
-  const handleAnswerChange = useCallback((questionId, value) => {
-    dispatch({ type: 'SET_ANSWER', questionId, value })
-    setSaveStatus('saving')
-    clearTimeout(saveTimers.current[questionId])
-    saveTimers.current[questionId] = setTimeout(async () => {
+  // ── Answer save (debounced, with retry on failure) ──────────────────────────
+  const saveQuestion = useCallback(async (questionId, value) => {
+    try {
       const result = await saveAnswer(attemptId, questionId, value)
       // The server is the source of truth on time, not this component's
       // local countdown — if it says time's up (e.g. the local timer was
@@ -160,10 +156,50 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
         doSubmit(true)
         return
       }
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus(null), 2000)
-    }, 800)
+      setSaveStatus(prev => ({ ...prev, [questionId]: 'saved' }))
+      setTimeout(() => {
+        setSaveStatus(prev => {
+          const { [questionId]: _discard, ...rest } = prev
+          return rest
+        })
+      }, 2000)
+    } catch {
+      // Network failure (or any thrown error) — mark unsynced instead of
+      // leaving the status stuck on 'saving' forever. The retry effects
+      // below pick this up.
+      setSaveStatus(prev => ({ ...prev, [questionId]: 'error' }))
+    }
   }, [attemptId]) // eslint-disable-line
+
+  const handleAnswerChange = useCallback((questionId, value) => {
+    dispatch({ type: 'SET_ANSWER', questionId, value })
+    setSaveStatus(prev => ({ ...prev, [questionId]: 'saving' }))
+    clearTimeout(saveTimers.current[questionId])
+    saveTimers.current[questionId] = setTimeout(() => saveQuestion(questionId, value), 800)
+  }, [saveQuestion])
+
+  // ── Retry sweep for unsynced answers ────────────────────────────────────────
+  const retryFailedSaves = useCallback(() => {
+    Object.entries(saveStatus).forEach(([questionId, status]) => {
+      if (status === 'error') saveQuestion(questionId, answersRef.current[questionId])
+    })
+  }, [saveStatus, saveQuestion])
+
+  // Fast path: retry the moment the browser reports connectivity back.
+  useEffect(() => {
+    window.addEventListener('online', retryFailedSaves)
+    return () => window.removeEventListener('online', retryFailedSaves)
+  }, [retryFailedSaves])
+
+  // Fallback: navigator.onLine only reflects the network interface, not real
+  // reachability (wifi connected, upstream down is a real case it misses) —
+  // a 5s sweep is the necessary catch-all while anything is unsynced.
+  useEffect(() => {
+    const hasErrors = Object.values(saveStatus).includes('error')
+    if (!hasErrors) return
+    const id = setInterval(retryFailedSaves, 5000)
+    return () => clearInterval(id)
+  }, [saveStatus, retryFailedSaves])
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function doSubmit(isAuto = false) {
@@ -175,25 +211,38 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
     Object.keys(saveTimers.current).forEach(qid => clearTimeout(saveTimers.current[qid]))
     saveTimers.current = {}
 
-    await Promise.all(
-      questions.map(q => {
-        const a = answersRef.current[q.question_id]
-        return a !== undefined && a !== null && a !== ''
-          ? saveAnswer(attemptId, q.question_id, a)
-          : Promise.resolve()
-      })
-    )
+    try {
+      await Promise.all(
+        questions.map(q => {
+          const a = answersRef.current[q.question_id]
+          return a !== undefined && a !== null && a !== ''
+            ? saveAnswer(attemptId, q.question_id, a)
+            : Promise.resolve()
+        })
+      )
 
-    const result = await submitExam(attemptId)
-    if (result?.error) {
-      toast.error(result.error)
+      const result = await submitExam(attemptId)
+      if (result?.error) {
+        toast.error(result.error)
+        setSubmitting(false)
+        submittingRef.current = false
+        return
+      }
+
+      clearDraft(draftKey)
+      if (isAuto) toast.info('Your exam has been submitted.')
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+      router.push(`/lab/${labCode}/result`)
+    } catch {
+      // Network failure reaching the server at all (not a server-returned
+      // error) — recover to a retryable state instead of spinning forever.
+      // Nothing is lost: the local draft is untouched until submit actually
+      // succeeds.
+      toast.error("Couldn't submit — check your connection and try again.")
       setSubmitting(false)
-      return
+      submittingRef.current = false
+      autoSubmitted.current = false
     }
-
-    if (isAuto) toast.info('Your exam has been submitted.')
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-    router.push(`/lab/${labCode}/result`)
   }
 
   function handleSubmitClick() {
@@ -259,16 +308,22 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
                 <p className="text-xs text-text-muted">
                   Question {state.currentIndex + 1} of {total} · {answeredCount} answered
                 </p>
-                {saveStatus === 'saving' && (
+                {saveStatus[q.question_id] === 'saving' && (
                   <span className="flex items-center gap-1 text-xs text-text-muted">
                     <Loader2 size={10} className="animate-spin" />
                     Saving…
                   </span>
                 )}
-                {saveStatus === 'saved' && (
+                {saveStatus[q.question_id] === 'saved' && (
                   <span className="flex items-center gap-1 text-xs text-success">
                     <Check size={10} />
                     Saved
+                  </span>
+                )}
+                {saveStatus[q.question_id] === 'error' && (
+                  <span className="flex items-center gap-1 text-xs text-text-muted">
+                    <AlertTriangle size={10} />
+                    Will retry
                   </span>
                 )}
               </div>
@@ -404,6 +459,7 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
             answers={state.answers}
             flagged={state.flagged}
             currentIndex={state.currentIndex}
+            saveStatus={saveStatus}
             onNavigate={index => dispatch({ type: 'NAVIGATE', index, max: total - 1 })}
           />
         </div>
@@ -426,6 +482,7 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
                 answers={state.answers}
                 flagged={state.flagged}
                 currentIndex={state.currentIndex}
+                saveStatus={saveStatus}
                 onNavigate={index => {
                   dispatch({ type: 'NAVIGATE', index, max: total - 1 })
                   setShowMobileNav(false)
