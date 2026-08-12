@@ -18,11 +18,20 @@ export default async function LabResultPage({ params }) {
   // Same unauthenticated-safe lookup pattern as the lobby: only the exam's
   // existence is checked before authentication, via the admin client.
   const adminClient = createAdminClient()
-  const { data: examBasic } = await adminClient
+  const { data: examBasic, error: examBasicError } = await adminClient
     .from('exams')
     .select('id')
     .eq('access_code', upperCode)
     .maybeSingle()
+
+  if (examBasicError) {
+    console.error('[LabResultPage]', examBasicError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load this exam. Please refresh.</p>
+      </div>
+    )
+  }
 
   if (!examBasic) notFound()
 
@@ -52,48 +61,73 @@ export default async function LabResultPage({ params }) {
   const user     = await requireRole('student')
   const examId   = examBasic.id
 
-  const { data: exam } = await supabase
+  const { data: exam, error: examError } = await supabase
     .from('exams')
     .select('id, title, pass_mark, duration_minutes, courses ( course_code )')
     .eq('id', examId)
     .single()
 
+  if (examError) {
+    console.error('[LabResultPage]', examError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load this exam. Please refresh.</p>
+      </div>
+    )
+  }
+
   if (!exam) notFound()
 
-  const { data: attempt } = await supabase
+  const { data: attempt, error: attemptError } = await supabase
     .from('attempts')
     .select('id, status, submitted_at, total_score')
     .eq('exam_id', examId)
     .eq('student_id', user.id)
     .maybeSingle()
+  if (attemptError) console.error('[LabResultPage]', attemptError)
 
   // A submitted attempt normally has a result row by now (written in the
   // same request that marks it submitted) — this guards a rare edge case
   // (e.g. a transient DB error during submission) rather than a normal
   // expected state.
-  const { data: result } = await supabase
+  const { data: result, error: resultError } = await supabase
     .from('results')
     .select('final_score, passed')
     .eq('exam_id', examId)
     .eq('student_id', user.id)
     .maybeSingle()
 
-  const { data: examQuestions } = await supabase
+  const { data: examQuestions, error: examQuestionsError } = await supabase
     .from('exam_questions')
     .select('question_id, marks')
     .eq('exam_id', examId)
+
+  // Hard stop, never render a possibly-wrong score — the score card and
+  // breakdown depend entirely on result/examQuestions being trustworthy
+  // (see plan design doc: correctness-critical, not a dashboard stat).
+  if (resultError || examQuestionsError) {
+    console.error('[LabResultPage]', resultError || examQuestionsError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 text-center">
+        <p className="text-sm text-text-muted max-w-sm">
+          Failed to load your result. Please refresh, or contact your exam officer if this persists.
+        </p>
+      </div>
+    )
+  }
 
   const totalPossible = (examQuestions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
 
   let responses = []
   if (result && attempt) {
-    const { data: rawResponses } = await supabase
+    const { data: rawResponses, error: responsesError } = await supabase
       .from('responses')
       .select(`
         question_id, student_answer, is_correct, marks_awarded, teacher_feedback,
         question_bank:question_id ( type, body, options, explanation )
       `)
       .eq('attempt_id', attempt.id)
+    if (responsesError) console.error('[LabResultPage]', responsesError)
 
     responses = rawResponses ?? []
   }
