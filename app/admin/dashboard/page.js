@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Badge } from '@/components/ui/Badge'
+import { SignInLinkCard } from '@/components/admin/SignInLinkCard'
 import {
   Users, ClipboardList, BookOpen, GraduationCap, ArrowRight,
   TrendingUp, AlertTriangle, CheckCircle2, Clock, Building2,
@@ -24,6 +25,7 @@ export default async function AdminDashboardPage() {
     { data: departments },
     { data: allResults },
     { data: closedExams },
+    { data: university },
   ] = await Promise.all([
     supabase.from('users').select('id', { count: 'exact', head: true })
       .eq('university_id', user.university_id).eq('role', 'lecturer').eq('is_active', true),
@@ -62,6 +64,9 @@ export default async function AdminDashboardPage() {
       .select('id')
       .eq('university_id', user.university_id)
       .eq('status', 'closed'),
+
+    // University subdomain for sign-in link
+    supabase.from('universities').select('subdomain').eq('id', user.university_id).maybeSingle(),
   ])
 
   // Re-fetch results properly scoped to this university's exams
@@ -93,6 +98,10 @@ export default async function AdminDashboardPage() {
     .map(d => ({ ...d, ...( deptMap[d.id] ?? { students: 0, lecturers: 0 }) }))
     .sort((a, b) => b.students - a.students)
     .slice(0, 6)
+
+  // Sign-in link
+  const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL || ''
+  const signInUrl = university?.subdomain ? `${siteUrl}/${university.subdomain}/login` : null
 
   // Result health
   const totalResults    = (uniResults ?? []).length
@@ -216,6 +225,8 @@ export default async function AdminDashboardPage() {
 
           {/* Right col */}
           <div className="space-y-5">
+            {signInUrl && <SignInLinkCard url={signInUrl} />}
+
             {/* Result health */}
             <div className="bg-surface border border-border rounded-xl p-5">
               <h2 className="text-sm font-semibold text-text-primary mb-4">Results Health</h2>
