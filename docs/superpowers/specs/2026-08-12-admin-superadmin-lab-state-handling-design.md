@@ -34,7 +34,7 @@ Per-page breakdown:
 | `admin/users/page.js` | `users` (the three role-grouped tables) | — | `faculties`, `departments` (feed `InviteUserModal`/`BulkUploadStudentsModal` dropdowns only) |
 | `super-admin/dashboard/page.js` | Combined: any of the ~7 queries + follow-ups failing replaces the university-cards/health/latest-exams grid below the top 4 stat cards | — | — |
 | `super-admin/logs/page.js` | `logs` (table) | — | — |
-| `super-admin/universities/page.js` | `universities` (cards) | `userCounts` (per-university student/lecturer/total figures — same "false zero" risk as `admin/exams`'s `attemptCounts`) | — |
+| `super-admin/universities/page.js` | `universities` (cards) | `userCounts` (per-university student/lecturer/total figures — same "false zero" risk as `admin/exams`'s `attemptCounts`; on failure, keep each university's name/subdomain and hide just its counts row, plus one banner above the list — same "hide what you don't have" approach as the `results/page.js` fix rather than a full block-replace, since the card identity data is still valid) | — |
 | `super-admin/users/page.js` | `users` (table) | — | — |
 
 ### 2. Lab flow: adapted loading, kiosk-styled error boundary
@@ -43,6 +43,8 @@ Per-page breakdown:
 - `loading.js` for `app/lab/[code]/`, `app/lab/[code]/attempt/[attemptId]/`, and `app/lab/[code]/result/` — each has a real query chain. Skipped only for `app/lab/page.js`, the code-entry screen, which is a static form with no query.
 
 **Query-error rule for lab (replaces the banner rule — hard-stop instead):**
+
+Both `lab/[code]/page.js` and `lab/[code]/result/page.js` also have an earlier `examBasic` lookup (via the admin client, checking the exam exists before authentication) with the same `if (!examBasic) notFound()` error-vs-missing conflation the rest of this rollout has been fixing — split the same way there too: a real error on `examBasic` shows the same full-screen "Failed to load this exam. Please refresh." message used for the main `exam` query below; a genuinely missing row still 404s.
 
 | Page | Query | On error |
 |---|---|---|
