@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { QuestionCard } from '@/components/questions/QuestionCard'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Button } from '@/components/ui/Button'
 import { QuestionsFilters } from './QuestionsFilters'
 
@@ -60,11 +61,7 @@ export default async function QuestionsPage({ searchParams }) {
       <main className="flex-1 p-6 space-y-5">
         <QuestionsFilters courses={courses ?? []} />
 
-        {error && (
-          <div className="bg-danger-light border border-danger/20 rounded-xl px-5 py-4 text-sm text-danger">
-            Failed to load questions. Please refresh.
-          </div>
-        )}
+        {error && <QueryErrorBanner message="Failed to load questions. Please refresh." />}
 
         {!error && questions?.length === 0 && (
           <EmptyState
