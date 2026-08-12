@@ -7,6 +7,7 @@ import {
   CheckCircle2, Plus, Eye, BookOpen,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { formatDistanceToNow } from 'date-fns'
 
 export const metadata = { title: 'Dashboard' }
@@ -17,8 +18,8 @@ export default async function LecturerDashboardPage() {
   const now      = new Date().toISOString()
 
   const [
-    { count: questionCount },
-    { data: myExams },
+    { count: questionCount, error: questionsError },
+    { data: myExams, error: examsError },
     { data: allResults },
   ] = await Promise.all([
     supabase
@@ -45,7 +46,7 @@ export default async function LecturerDashboardPage() {
 
   // Now fetch results properly scoped to lecturer's exams
   const myExamIds = (myExams ?? []).map(e => e.id)
-  const { data: resultsData } = myExamIds.length
+  const { data: resultsData, error: resultsError } = myExamIds.length
     ? await supabase
         .from('results')
         .select('exam_id, final_score, passed, student_id')
@@ -119,6 +120,9 @@ export default async function LecturerDashboardPage() {
           />
         </div>
 
+        {(examsError || resultsError || questionsError) ? (
+          <QueryErrorBanner message="Failed to load dashboard data. Please refresh." />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: exam pipeline + performance */}
           <div className="lg:col-span-2 space-y-5">
@@ -249,6 +253,7 @@ export default async function LecturerDashboardPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   )
