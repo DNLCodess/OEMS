@@ -40,6 +40,16 @@ const ROLE_LABEL = {
   lecturer:     'Lecturer Portal',
 }
 
+// Shows a university's own logo in place of the generic icon when one is
+// set — same "only if set" pattern as the color theming; a university with
+// no logo_url renders exactly as before.
+function BrandIcon({ logoUrl, size }) {
+  if (logoUrl) {
+    return <img src={logoUrl} alt="" className={`size-${size} rounded-lg object-cover`} />
+  }
+  return <GraduationCap className={`size-${size === 8 ? 5 : 4} text-white`} />
+}
+
 function NavLinks({ items, pathname, onNavigate }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
@@ -94,7 +104,7 @@ function UserFooter({ user }) {
   )
 }
 
-export function Sidebar({ user }) {
+export function Sidebar({ user, logoUrl }) {
   const pathname   = usePathname()
   const [open, setOpen] = useState(false)
   const items      = NAV[user.role] ?? []
@@ -116,7 +126,7 @@ export function Sidebar({ user }) {
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-white/15">
-              <GraduationCap className="size-5 text-white" />
+              <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
               <p className="text-sm font-bold text-white leading-tight">OEMS</p>
@@ -132,7 +142,7 @@ export function Sidebar({ user }) {
       <div className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-primary h-14">
         <div className="flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-lg bg-white/15">
-            <GraduationCap className="size-4 text-white" />
+            <BrandIcon logoUrl={logoUrl} size={7} />
           </span>
           <span className="text-sm font-bold text-white">OEMS</span>
         </div>
@@ -166,7 +176,7 @@ export function Sidebar({ user }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-white/15">
-              <GraduationCap className="size-5 text-white" />
+              <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
               <p className="text-sm font-bold text-white leading-tight">OEMS</p>
