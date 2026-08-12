@@ -9,6 +9,7 @@ import { AccessCodePanel } from '@/components/exams/AccessCodePanel'
 import { ExamAccessPanel } from '@/components/exams/ExamAccessPanel'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 
 export async function generateMetadata({ params }) {
   return { title: 'Exam Builder' }
@@ -19,7 +20,12 @@ export default async function ExamDetailPage({ params }) {
   const supabase = await createClient()
   const { id }   = await params
 
-  const [{ data: exam }, { data: examQuestions }, { data: bankQuestions }, { data: examAccess }] = await Promise.all([
+  const [
+    { data: exam, error: examError },
+    { data: examQuestions, error: examQuestionsError },
+    { data: bankQuestions, error: bankQuestionsError },
+    { data: examAccess, error: examAccessError },
+  ] = await Promise.all([
     supabase
       .from('exams')
       .select(`
@@ -58,7 +64,24 @@ export default async function ExamDetailPage({ params }) {
       .eq('exam_id', id),
   ])
 
+  if (examError) {
+    console.error('[ExamDetailPage]', examError)
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <Link href="/lecturer/exams" className="text-sm text-text-muted hover:text-primary transition-colors">
+          ← Exams
+        </Link>
+        <div className="mt-4">
+          <QueryErrorBanner message="Failed to load this exam. Please refresh." />
+        </div>
+      </div>
+    )
+  }
+
   if (!exam || exam.created_by !== user.id) notFound()
+
+  const secondaryError = examQuestionsError || bankQuestionsError || examAccessError
+  if (secondaryError) console.error('[ExamDetailPage]', secondaryError)
 
   const isEditable = exam.status !== 'live' && exam.status !== 'closed'
 
@@ -126,6 +149,11 @@ export default async function ExamDetailPage({ params }) {
         {/* Main — question builder */}
         <div className="lg:col-span-2">
           <h2 className="text-base font-semibold text-text-primary mb-4">Questions</h2>
+          {secondaryError && (
+            <div className="mb-4">
+              <QueryErrorBanner message="Some exam data failed to load. Please refresh." />
+            </div>
+          )}
           <ExamBuilder
             examId={id}
             initialQuestions={examQuestions ?? []}
