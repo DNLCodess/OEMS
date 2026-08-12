@@ -14,7 +14,7 @@ const PREFIX_PUBLIC_PATHS = ['/lab', '/check-result']
 // bucket as plain /login/forgot-password below: an already-authenticated
 // visitor who lands on one should be redirected to their own dashboard, not
 // stay on a sign-in page.
-const UNIVERSITY_AUTH_PATH = /^\/[a-z0-9-]+\/(login|forgot-password)$/
+const UNIVERSITY_AUTH_PATH = /^\/[a-z0-9-]+\/(login|forgot-password)$/i
 
 const ROLE_HOME = {
   super_admin:  '/super-admin/dashboard',

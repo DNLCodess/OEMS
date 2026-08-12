@@ -19,7 +19,7 @@ export function SignInLinkCard({ url }) {
         Your Staff Sign-In Link
       </h2>
       <p className="text-xs text-text-muted mb-3">
-        Share this with your lecturers — it shows your institution's own branding on the sign-in page.
+        Share this with your lecturers — it shows your institution&apos;s own branding on the sign-in page.
       </p>
       <div className="flex items-center gap-2">
         <code className="flex-1 min-w-0 truncate text-xs bg-page border border-border rounded-lg px-3 py-2 text-text-secondary">

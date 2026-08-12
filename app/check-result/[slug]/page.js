@@ -68,9 +68,10 @@ export default async function UniversityCheckResultPage({ params }) {
 
   return (
     <div className="flex-1 px-4 py-16" style={themeStyle}>
+      <UniversityBadge university={university} />
       <ResultsList user={user} results={enriched} />
       <div className="text-center">
-        <CheckAnotherResultButton />
+        <CheckAnotherResultButton returnTo={`/check-result/${slug.toLowerCase()}`} />
       </div>
     </div>
   )

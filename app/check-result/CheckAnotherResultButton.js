@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { endStudentSession } from '@/lib/actions/studentAuth'
 
-export function CheckAnotherResultButton() {
+export function CheckAnotherResultButton({ returnTo = '/check-result' }) {
   const [loading, setLoading] = useState(false)
 
   async function handleClick() {
     setLoading(true)
-    await endStudentSession(null, '/check-result')
+    await endStudentSession(null, returnTo)
   }
 
   return (
