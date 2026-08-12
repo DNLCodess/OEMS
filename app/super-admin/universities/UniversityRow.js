@@ -72,7 +72,8 @@ export function UniversityRow({ university, counts, countsUnavailable = false })
           <Input
             id={`logo_url_${university.id}`} name="logo_url" label="Logo URL"
             defaultValue={university.logo_url ?? ''}
-            placeholder="https://example.com/logo.png"
+            placeholder="https://example.com/logo.png or /pcu/pcu-logo.jpeg"
+            hint="A full URL, or a path already in this app's public folder."
             error={state?.errors?.logo_url?.[0]}
           />
           {state?.errors?._form && <p className="text-sm text-danger">{state.errors._form}</p>}

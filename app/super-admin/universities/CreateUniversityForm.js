@@ -74,7 +74,7 @@ export function CreateUniversityForm() {
           <Input
             id="logo_url" name="logo_url" label="Logo URL"
             placeholder="https://example.com/logo.png"
-            hint="Optional — a link to an already-hosted image."
+            hint="Optional — a full URL (https://…), or a path like /pcu/pcu-logo.jpeg for an image already in this app's public folder."
             error={state?.errors?.logo_url?.[0]}
           />
           {state?.errors?._form && <p className="text-sm text-danger">{state.errors._form}</p>}
