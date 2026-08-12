@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Badge } from '@/components/ui/Badge'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import {
   Users, ClipboardList, BookOpen, GraduationCap, ArrowRight,
   TrendingUp, AlertTriangle, CheckCircle2, Clock, Building2,
@@ -15,15 +16,15 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient()
 
   const [
-    { count: lecturerCount },
-    { count: studentCount },
-    { count: activeExamCount },
-    { count: courseCount },
-    { count: deptCount },
-    { data: recentExams },
-    { data: departments },
+    { count: lecturerCount, error: lecturerCountError },
+    { count: studentCount, error: studentCountError },
+    { count: activeExamCount, error: activeExamCountError },
+    { count: courseCount, error: courseCountError },
+    { count: deptCount, error: deptCountError },
+    { data: recentExams, error: recentExamsError },
+    { data: departments, error: departmentsError },
     { data: allResults },
-    { data: closedExams },
+    { data: closedExams, error: closedExamsError },
   ] = await Promise.all([
     supabase.from('users').select('id', { count: 'exact', head: true })
       .eq('university_id', user.university_id).eq('role', 'lecturer').eq('is_active', true),
@@ -66,7 +67,7 @@ export default async function AdminDashboardPage() {
 
   // Re-fetch results properly scoped to this university's exams
   const uniExamIds = (closedExams ?? []).map(e => e.id)
-  const { data: uniResults } = uniExamIds.length
+  const { data: uniResults, error: uniResultsError } = uniExamIds.length
     ? await supabase
         .from('results')
         .select('passed')
@@ -74,12 +75,17 @@ export default async function AdminDashboardPage() {
     : { data: [] }
 
   // Dept user counts
-  const { data: deptUsers } = await supabase
+  const { data: deptUsers, error: deptUsersError } = await supabase
     .from('users')
     .select('department_id, role')
     .eq('university_id', user.university_id)
     .eq('is_active', true)
     .in('role', ['student', 'lecturer'])
+
+  const dashboardError = lecturerCountError || studentCountError || activeExamCountError ||
+    courseCountError || deptCountError || recentExamsError || departmentsError ||
+    closedExamsError || uniResultsError || deptUsersError
+  if (dashboardError) console.error('[AdminDashboardPage]', dashboardError)
 
   const deptMap = {}
   for (const u of deptUsers ?? []) {
@@ -132,6 +138,9 @@ export default async function AdminDashboardPage() {
           </div>
         )}
 
+        {dashboardError ? (
+          <QueryErrorBanner message="Failed to load dashboard data. Please refresh." />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left col */}
           <div className="lg:col-span-2 space-y-5">
@@ -273,6 +282,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   )
