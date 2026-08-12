@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Badge } from '@/components/ui/Badge'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { InviteUserModal } from './InviteUserModal'
 import { BulkUploadStudentsModal } from './BulkUploadStudentsModal'
 import { ToggleActiveButton } from './ToggleActiveButton'
@@ -18,7 +19,11 @@ export default async function AdminUsersPage() {
   const user     = await requireRole('school_admin')
   const supabase = await createClient()
 
-  const [{ data: users }, { data: faculties }, { data: departments }] = await Promise.all([
+  const [
+    { data: users, error: usersError },
+    { data: faculties, error: facultiesError },
+    { data: departments, error: departmentsError },
+  ] = await Promise.all([
     supabase
       .from('users')
       .select('id, full_name, email, role, matric_number, level, is_active, created_at, departments ( name )')
@@ -37,6 +42,10 @@ export default async function AdminUsersPage() {
       .eq('university_id', user.university_id)
       .order('name'),
   ])
+  if (usersError) console.error('[AdminUsersPage]', usersError)
+  // faculties/departments only feed the invite/bulk-upload modal dropdowns — logged, not bannered
+  if (facultiesError) console.error('[AdminUsersPage]', facultiesError)
+  if (departmentsError) console.error('[AdminUsersPage]', departmentsError)
 
   const grouped = {
     school_admin: [],
@@ -66,7 +75,8 @@ export default async function AdminUsersPage() {
         }
       />
       <main className="flex-1 p-6 space-y-8">
-        {Object.entries(grouped).map(([role, roleUsers]) => (
+        {usersError && <QueryErrorBanner message="Failed to load users. Please refresh." />}
+        {!usersError && Object.entries(grouped).map(([role, roleUsers]) => (
           <section key={role}>
             <div className="flex items-center gap-2 mb-3">
               <h2 className="text-sm font-semibold text-text-primary">{ROLE_LABELS[role]}s</h2>
