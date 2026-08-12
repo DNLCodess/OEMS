@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { ResultsTable } from '@/components/lecturer/ResultsTable'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Badge } from '@/components/ui/Badge'
 import { Users, TrendingUp, TrendingDown, Award, AlertTriangle } from 'lucide-react'
 
@@ -14,30 +15,44 @@ export default async function ExamResultsPage({ params }) {
   const supabase = await createClient()
   const { id }   = await params
 
-  const { data: exam } = await supabase
+  const { data: exam, error: examError } = await supabase
     .from('exams')
     .select('id, title, status, pass_mark, created_by, courses!course_id ( course_code, course_title )')
     .eq('id', id)
     .eq('university_id', user.university_id)
     .single()
 
+  if (examError) {
+    console.error('[ExamResultsPage]', examError)
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <Link href={`/lecturer/exams/${id}`} className="text-sm text-text-muted hover:text-primary transition-colors">
+          ← Back to Exam
+        </Link>
+        <div className="mt-4">
+          <QueryErrorBanner message="Failed to load results for this exam. Please refresh." />
+        </div>
+      </div>
+    )
+  }
+
   if (!exam || exam.created_by !== user.id) notFound()
 
-  const { data: examQuestions } = await supabase
+  const { data: examQuestions, error: examQuestionsError } = await supabase
     .from('exam_questions')
     .select('marks')
     .eq('exam_id', id)
 
   const totalPossible = (examQuestions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
 
-  const { data: attempts } = await supabase
+  const { data: attempts, error: attemptsError } = await supabase
     .from('attempts')
     .select('id, status, submitted_at, total_score, users:student_id ( id, full_name, matric_number, level )')
     .eq('exam_id', id)
     .in('status', ['submitted', 'graded'])
     .order('total_score', { ascending: false, nullsFirst: false })
 
-  const { data: results } = await supabase
+  const { data: results, error: resultsError } = await supabase
     .from('results')
     .select('attempt_id, final_score, passed')
     .eq('exam_id', id)
@@ -47,12 +62,15 @@ export default async function ExamResultsPage({ params }) {
   const attemptIds = (attempts ?? []).map(a => a.id)
 
   // Per-question stats: how many got each question wrong
-  const { data: allResponses } = attemptIds.length
+  const { data: allResponses, error: responsesError } = attemptIds.length
     ? await supabase
         .from('responses')
         .select('question_id, is_correct, marks_awarded')
         .in('attempt_id', attemptIds)
     : { data: [] }
+
+  const dataError = examQuestionsError || attemptsError || resultsError || responsesError
+  if (dataError) console.error('[ExamResultsPage]', dataError)
 
   const rows = (attempts ?? []).map(a => {
     const result  = resultMap.get(a.id)
@@ -126,7 +144,9 @@ export default async function ExamResultsPage({ params }) {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {dataError ? (
+        <QueryErrorBanner message="Failed to load result data for this exam. Please refresh." />
+      ) : rows.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No submissions yet"
