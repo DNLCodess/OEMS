@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Badge } from '@/components/ui/Badge'
 import { BarChart2, Users } from 'lucide-react'
 
@@ -11,13 +12,23 @@ export default async function LecturerResultsPage() {
   const user     = await requireRole('lecturer')
   const supabase = await createClient()
 
-  const { data: exams } = await supabase
+  const { data: exams, error: examsError } = await supabase
     .from('exams')
     .select('id, title, status, pass_mark, courses!course_id ( course_code, course_title ), exam_questions ( marks )')
     .eq('university_id', user.university_id)
     .eq('created_by', user.id)
     .in('status', ['live', 'closed'])
     .order('created_at', { ascending: false })
+
+  if (examsError) {
+    console.error('[ResultsPage]', examsError)
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight mb-8">Results</h1>
+        <QueryErrorBanner message="Failed to load results. Please refresh." />
+      </div>
+    )
+  }
 
   if (!exams?.length) {
     return (
@@ -39,7 +50,7 @@ export default async function LecturerResultsPage() {
 
   const examIds = exams.map(e => e.id)
 
-  const [{ data: attempts }, { data: results }] = await Promise.all([
+  const [{ data: attempts, error: attemptsError }, { data: results, error: resultsError }] = await Promise.all([
     supabase
       .from('attempts')
       .select('id, exam_id, status, total_score, student_id')
@@ -51,6 +62,9 @@ export default async function LecturerResultsPage() {
       .select('exam_id, student_id, final_score, passed')
       .in('exam_id', examIds),
   ])
+
+  const secondaryError = attemptsError || resultsError
+  if (secondaryError) console.error('[ResultsPage]', secondaryError)
 
   // Build per-exam aggregates
   const enriched = exams.map(exam => {
@@ -89,6 +103,12 @@ export default async function LecturerResultsPage() {
           Overview of all your exams with submissions.
         </p>
       </div>
+
+      {secondaryError && (
+        <div className="mb-4">
+          <QueryErrorBanner message="Some result data failed to load — figures below may be incomplete. Please refresh." />
+        </div>
+      )}
 
       {/* Platform summary */}
       <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
