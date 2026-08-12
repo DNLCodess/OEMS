@@ -8,6 +8,7 @@ import { SubmitButton } from '@/components/ui/Button'
 
 export function CreateUniversityForm() {
   const [open, setOpen] = useState(false)
+  const [useCustomColor, setUseCustomColor] = useState(false)
   const [state, formAction] = useActionState(createUniversity, null)
 
   return (
@@ -34,18 +35,40 @@ export function CreateUniversityForm() {
             required
             error={state?.errors?.subdomain?.[0]}
           />
-          <div className="flex items-end gap-3">
-            <div>
-              <label htmlFor="primary_color" className="block text-sm font-medium text-text-primary mb-1.5">
-                Brand color <span className="text-text-muted font-normal">(optional)</span>
-              </label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
-                id="primary_color" name="primary_color" type="color" defaultValue="#3A0A5E"
-                className="h-10 w-16 rounded-lg border border-border cursor-pointer"
+                type="checkbox"
+                checked={useCustomColor}
+                onChange={e => setUseCustomColor(e.target.checked)}
+                className="rounded accent-primary"
               />
-            </div>
-            {state?.errors?.primary_color?.[0] && (
-              <p className="text-sm text-danger">{state.errors.primary_color[0]}</p>
+              <span className="text-sm font-medium text-text-primary">Use a custom brand color</span>
+            </label>
+            <p className="text-xs text-text-muted">
+              Off by default — the university uses the platform&apos;s default look until you set one, here or later from the list below.
+            </p>
+            {useCustomColor && (
+              <div className="flex items-end gap-3">
+                <div>
+                  <label htmlFor="primary_color" className="block text-sm font-medium text-text-primary mb-1.5">
+                    Brand color
+                  </label>
+                  {/* A native color input always submits a 6-digit hex — it
+                      can never be left "empty" — so the only way to let a
+                      super admin genuinely choose "no override, use the
+                      platform default" is to keep the field entirely out of
+                      the form when they haven't opted in, rather than rely
+                      on the input's own value. */}
+                  <input
+                    id="primary_color" name="primary_color" type="color" defaultValue="#3A0A5E"
+                    className="h-10 w-16 rounded-lg border border-border cursor-pointer"
+                  />
+                </div>
+                {state?.errors?.primary_color?.[0] && (
+                  <p className="text-sm text-danger">{state.errors.primary_color[0]}</p>
+                )}
+              </div>
             )}
           </div>
           <Input
