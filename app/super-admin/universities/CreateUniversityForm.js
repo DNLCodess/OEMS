@@ -30,9 +30,29 @@ export function CreateUniversityForm() {
           <Input
             id="subdomain" name="subdomain" label="Subdomain"
             placeholder="unilag"
-            hint="Lowercase letters, numbers, hyphens only — e.g. unilag, ui, abu"
+            hint="Lowercase letters, numbers, hyphens only — e.g. unilag, ui, abu. Becomes their /{subdomain}/login link."
             required
             error={state?.errors?.subdomain?.[0]}
+          />
+          <div className="flex items-end gap-3">
+            <div>
+              <label htmlFor="primary_color" className="block text-sm font-medium text-text-primary mb-1.5">
+                Brand color <span className="text-text-muted font-normal">(optional)</span>
+              </label>
+              <input
+                id="primary_color" name="primary_color" type="color" defaultValue="#3A0A5E"
+                className="h-10 w-16 rounded-lg border border-border cursor-pointer"
+              />
+            </div>
+            {state?.errors?.primary_color?.[0] && (
+              <p className="text-sm text-danger">{state.errors.primary_color[0]}</p>
+            )}
+          </div>
+          <Input
+            id="logo_url" name="logo_url" label="Logo URL"
+            placeholder="https://example.com/logo.png"
+            hint="Optional — a link to an already-hosted image."
+            error={state?.errors?.logo_url?.[0]}
           />
           {state?.errors?._form && <p className="text-sm text-danger">{state.errors._form}</p>}
           {state?.ok && <p className="text-sm text-success">University created successfully.</p>}

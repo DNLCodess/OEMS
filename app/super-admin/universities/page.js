@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { CreateUniversityForm } from './CreateUniversityForm'
+import { UniversityRow } from './UniversityRow'
 import { Building2 } from 'lucide-react'
 
 export const metadata = { title: 'Universities — OEMS' }
@@ -12,7 +13,7 @@ export default async function SuperAdminUniversitiesPage() {
 
   const { data: universities } = await supabase
     .from('universities')
-    .select('id, name, subdomain, created_at')
+    .select('id, name, subdomain, primary_color, logo_url, created_at')
     .order('name')
 
   // Count users per university
@@ -49,36 +50,13 @@ export default async function SuperAdminUniversitiesPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {universities.map(uni => {
-              const counts = countMap[uni.id] ?? { total: 0, students: 0, lecturers: 0 }
-              return (
-                <div key={uni.id} className="bg-surface border border-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-primary-light shrink-0">
-                      <Building2 size={18} className="text-primary" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-primary truncate">{uni.name}</p>
-                      <p className="text-xs font-mono text-text-muted">{uni.subdomain}.oems.edu</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6 text-center shrink-0">
-                    <div>
-                      <p className="text-lg font-bold text-text-primary tabular-nums">{counts.lecturers}</p>
-                      <p className="text-xs text-text-muted">Lecturers</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-text-primary tabular-nums">{counts.students}</p>
-                      <p className="text-xs text-text-muted">Students</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-text-primary tabular-nums">{counts.total}</p>
-                      <p className="text-xs text-text-muted">Total Users</p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {universities.map(uni => (
+              <UniversityRow
+                key={uni.id}
+                university={uni}
+                counts={countMap[uni.id] ?? { total: 0, students: 0, lecturers: 0 }}
+              />
+            ))}
           </div>
         )}
       </main>
