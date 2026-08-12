@@ -179,11 +179,21 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   }, [saveQuestion])
 
   // ── Retry sweep for unsynced answers ────────────────────────────────────────
+  // retryFailedSaves reads saveStatus via a ref rather than closing over the
+  // state value directly, so its own identity stays stable across status
+  // transitions (only changing when saveQuestion changes, which is itself
+  // stable). This keeps the effects below — the online listener and,
+  // especially, the interval sweep — from being torn down and rebuilt every
+  // time a save status flips, which would otherwise reset the interval's
+  // countdown before it ever fires.
+  const saveStatusRef = useRef(saveStatus)
+  useEffect(() => { saveStatusRef.current = saveStatus }, [saveStatus])
+
   const retryFailedSaves = useCallback(() => {
-    Object.entries(saveStatus).forEach(([questionId, status]) => {
+    Object.entries(saveStatusRef.current).forEach(([questionId, status]) => {
       if (status === 'error') saveQuestion(questionId, answersRef.current[questionId])
     })
-  }, [saveStatus, saveQuestion])
+  }, [saveQuestion])
 
   // Fast path: retry the moment the browser reports connectivity back.
   useEffect(() => {
@@ -193,13 +203,18 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
 
   // Fallback: navigator.onLine only reflects the network interface, not real
   // reachability (wifi connected, upstream down is a real case it misses) —
-  // a 5s sweep is the necessary catch-all while anything is unsynced.
+  // a 5s sweep is the necessary catch-all while anything is unsynced. The
+  // interval itself is unconditional and stable (deps only on the now-stable
+  // retryFailedSaves) so status churn can't reset its countdown; whether
+  // there's actually anything to retry is checked fresh on each tick.
   useEffect(() => {
-    const hasErrors = Object.values(saveStatus).includes('error')
-    if (!hasErrors) return
-    const id = setInterval(retryFailedSaves, 5000)
+    const id = setInterval(() => {
+      if (Object.values(saveStatusRef.current).includes('error')) {
+        retryFailedSaves()
+      }
+    }, 5000)
     return () => clearInterval(id)
-  }, [saveStatus, retryFailedSaves])
+  }, [retryFailedSaves])
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function doSubmit(isAuto = false) {
