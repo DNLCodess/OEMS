@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { ClipboardList } from 'lucide-react'
 import { EXAM_TYPE_LABELS } from '@/lib/utils'
 
@@ -13,7 +14,7 @@ export default async function AdminExamsPage() {
   const user     = await requireRole('school_admin')
   const supabase = await createClient()
 
-  const { data: exams } = await supabase
+  const { data: exams, error: examsError } = await supabase
     .from('exams')
     .select(`
       id, title, status, exam_type, academic_session, semester,
@@ -23,16 +24,18 @@ export default async function AdminExamsPage() {
     `)
     .eq('university_id', user.university_id)
     .order('created_at', { ascending: false })
+  if (examsError) console.error('[AdminExamsPage]', examsError)
 
   // Count attempts per exam
   const examIds = (exams ?? []).map(e => e.id)
-  const { data: attemptCounts } = examIds.length
+  const { data: attemptCounts, error: attemptCountsError } = examIds.length
     ? await supabase
         .from('attempts')
         .select('exam_id')
         .in('exam_id', examIds)
         .in('status', ['submitted', 'graded'])
     : { data: [] }
+  if (attemptCountsError) console.error('[AdminExamsPage]', attemptCountsError)
 
   const countMap = {}
   for (const a of attemptCounts ?? []) {
@@ -45,8 +48,13 @@ export default async function AdminExamsPage() {
         title="Exam Oversight"
         subtitle="Read-only view of all exams across your institution"
       />
-      <main className="flex-1 p-6">
-        {!exams?.length ? (
+      <main className="flex-1 p-6 space-y-4">
+        {attemptCountsError && !examsError && (
+          <QueryErrorBanner message="Submission counts failed to load — showing '—' below. Please refresh." />
+        )}
+        {examsError ? (
+          <QueryErrorBanner message="Failed to load exams. Please refresh." />
+        ) : !exams?.length ? (
           <EmptyState
             icon={ClipboardList}
             title="No exams yet"
@@ -88,7 +96,7 @@ export default async function AdminExamsPage() {
                       <Badge variant={exam.status} />
                     </td>
                     <td className="px-4 py-3 text-right text-text-secondary hidden lg:table-cell">
-                      {countMap[exam.id] ?? 0}
+                      {attemptCountsError ? '—' : (countMap[exam.id] ?? 0)}
                     </td>
                   </tr>
                 ))}
