@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Building2, Users, ShieldCheck, ArrowRight, BookOpen, ClipboardList, TrendingUp, GraduationCap } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { format } from 'date-fns'
 
 export const metadata = { title: 'Platform Dashboard' }
@@ -13,13 +14,13 @@ export default async function SuperAdminDashboardPage() {
   const supabase = await createClient()
 
   const [
-    { data: universities },
-    { count: totalUsers },
-    { count: totalExams },
-    { count: liveExams },
-    { data: allUsers },
-    { data: allResults },
-    { data: recentExams },
+    { data: universities, error: universitiesError },
+    { count: totalUsers, error: totalUsersError },
+    { count: totalExams, error: totalExamsError },
+    { count: liveExams, error: liveExamsError },
+    { data: allUsers, error: allUsersError },
+    { data: allResults, error: allResultsError },
+    { data: recentExams, error: recentExamsError },
   ] = await Promise.all([
     supabase.from('universities')
       .select('id, name, subdomain, created_at')
@@ -56,9 +57,13 @@ export default async function SuperAdminDashboardPage() {
   }
 
   // Exams per university
-  const { data: allExams } = await supabase
+  const { data: allExams, error: allExamsError } = await supabase
     .from('exams')
     .select('university_id, status')
+
+  const dashboardError = universitiesError || totalUsersError || totalExamsError ||
+    liveExamsError || allUsersError || allResultsError || recentExamsError || allExamsError
+  if (dashboardError) console.error('[SuperAdminDashboardPage]', dashboardError)
 
   const uniExamMap = {}
   for (const e of allExams ?? []) {
@@ -113,6 +118,9 @@ export default async function SuperAdminDashboardPage() {
           </div>
         )}
 
+        {dashboardError ? (
+          <QueryErrorBanner message="Failed to load dashboard data. Please refresh." />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* University cards */}
           <div className="lg:col-span-2 space-y-4">
@@ -234,6 +242,7 @@ export default async function SuperAdminDashboardPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   )
