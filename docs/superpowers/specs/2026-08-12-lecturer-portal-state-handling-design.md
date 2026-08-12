@@ -50,11 +50,11 @@ One client component (Next.js requires `error.js` boundaries to be client compon
 
 ### 4. The query-error rule
 
-Applied consistently across `dashboard/page.js`, `exams/page.js`, `exams/[id]/page.js`, `questions/page.js`, `results/page.js`:
+Applied consistently across `dashboard/page.js`, `exams/page.js`, `exams/[id]/page.js`, `questions/page.js`, `results/page.js`. Every query (`primary` — the data the page exists to show — and `secondary` — enrichment/decoration data) is treated the same way on `error`: degrade gracefully, keep the `?? []` fallback so the page's shell (header, nav, filters) still renders, and show the inline red banner pattern already established in `questions/page.js` ("Failed to load X. Please refresh.") in place of the content that failed to load.
 
-- **Primary query** — the query whose data the page exists to show (dashboard's `myExams`, `exams/page.js`'s exam list, `exams/[id]/page.js`'s single `exam`, `results/page.js`'s `exams`, `questions/page.js`'s `questions` — already handled correctly there). On `error`, `throw new Error(...)` so `error.js` catches it.
-  - `exams/[id]/page.js` special case: the existing line `if (!exam || exam.created_by !== user.id) notFound()` currently conflates "query failed" with "no such row" — both funnel into a 404. This gets split: a real `error` throws (→ `error.js`), while `!exam` with no `error` (or a "no rows" result) still calls `notFound()` (→ proper 404).
-- **Secondary/enrichment query** — decorates the page but isn't the reason it exists (dashboard's `results` query; exam detail's `exam_questions`/`bankQuestions`/`examAccess`; questions page's `courses` filter list). On `error`, degrade gracefully: keep the `?? []` fallback so the page still renders, but also render the inline red banner pattern already established in `questions/page.js` ("Failed to load X. Please refresh.") instead of failing silently.
+This is a deliberate revision from "primary queries throw" — `error.js` blanking the whole page on every expected Supabase error response would be a UX downgrade from the banner pattern `questions/page.js` already uses well. `error.js` (section 3) is instead a last-resort safety net for genuinely unhandled exceptions (a thrown JS error, a Supabase client init failure) — not the normal path for an `{ error }` response a query returns.
+
+`exams/[id]/page.js` special case: the existing line `if (!exam || exam.created_by !== user.id) notFound()` currently conflates "query failed" with "no such row" — both funnel into a 404, which is misleading when the exam does exist but the query genuinely failed. This gets split: a real `error` on the primary `exam` query renders the page-level banner instead of the question builder/sidebar (the page has no meaningful shell without `exam`, so the banner is the only content shown); `!exam` with no `error` still calls `notFound()` (→ proper 404).
 
 ### Testing
 
