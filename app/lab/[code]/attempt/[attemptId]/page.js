@@ -12,7 +12,7 @@ export default async function LabAttemptPage({ params }) {
   const { code, attemptId } = await params
 
   // Resolve exam from lab code
-  const { data: exam } = await supabase
+  const { data: exam, error: examError } = await supabase
     .from('exams')
     .select(`
       id, title, status, duration_minutes, pass_mark,
@@ -22,14 +22,32 @@ export default async function LabAttemptPage({ params }) {
     .eq('access_code', code.toUpperCase())
     .single()
 
+  if (examError && examError.code !== 'PGRST116') {
+    console.error('[LabAttemptPage]', examError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load your exam. Please refresh.</p>
+      </div>
+    )
+  }
+
   if (!exam) notFound()
 
-  const { data: attempt } = await supabase
+  const { data: attempt, error: attemptError } = await supabase
     .from('attempts')
     .select('id, exam_id, status, started_at, student_id')
     .eq('id', attemptId)
     .eq('student_id', user.id)
     .single()
+
+  if (attemptError && attemptError.code !== 'PGRST116') {
+    console.error('[LabAttemptPage]', attemptError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load your exam. Please refresh.</p>
+      </div>
+    )
+  }
 
   if (!attempt) notFound()
 
@@ -51,14 +69,38 @@ export default async function LabAttemptPage({ params }) {
     redirect(`/lab/${code}/result`)
   }
 
-  const { data: rawQuestions } = await supabase
-    .from('exam_questions')
-    .select(`
-      id, question_id, order_index, marks,
-      question_bank:question_id ( id, type, body, options, difficulty )
-    `)
-    .eq('exam_id', exam.id)
-    .order('order_index')
+  const [
+    { data: rawQuestions, error: rawQuestionsError },
+    { data: responses, error: responsesError },
+  ] = await Promise.all([
+    supabase
+      .from('exam_questions')
+      .select(`
+        id, question_id, order_index, marks,
+        question_bank:question_id ( id, type, body, options, difficulty )
+      `)
+      .eq('exam_id', exam.id)
+      .order('order_index'),
+    supabase
+      .from('responses')
+      .select('question_id, student_answer')
+      .eq('attempt_id', attemptId),
+  ])
+
+  // Hard stop, no ExamInterface — rendering the interface with missing
+  // questions or missing saved answers during a live, timed attempt is
+  // worse than showing nothing (see plan design doc: correctness-critical
+  // data, not a dashboard stat that can tolerate a temporary wrong zero).
+  if (rawQuestionsError || responsesError) {
+    console.error('[LabAttemptPage]', rawQuestionsError || responsesError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 text-center">
+        <p className="text-sm text-text-muted max-w-sm">
+          Couldn&apos;t load your exam. Please refresh — your progress and timer are preserved.
+        </p>
+      </div>
+    )
+  }
 
   let questions = (rawQuestions ?? []).map(eq => ({
     id:          eq.id,
@@ -72,11 +114,6 @@ export default async function LabAttemptPage({ params }) {
     const seed = parseInt(attemptId.replace(/-/g, '').slice(0, 8), 16)
     questions = deterministicShuffle(questions, seed)
   }
-
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('question_id, student_answer')
-    .eq('attempt_id', attemptId)
 
   return (
     <ExamInterface

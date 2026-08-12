@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { CreateCourseForm } from './CreateCourseForm'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { BookOpen } from 'lucide-react'
 
 export const metadata = { title: 'Courses — OEMS' }
@@ -12,7 +13,10 @@ export default async function AdminCoursesPage() {
   const user     = await requireRole('school_admin')
   const supabase = await createClient()
 
-  const [{ data: courses }, { data: departments }] = await Promise.all([
+  const [
+    { data: courses, error: coursesError },
+    { data: departments, error: departmentsError },
+  ] = await Promise.all([
     supabase
       .from('courses')
       .select('id, course_code, course_title, credit_units, level, semester, departments ( name, faculties ( name ) )')
@@ -24,6 +28,9 @@ export default async function AdminCoursesPage() {
       .eq('university_id', user.university_id)
       .order('name'),
   ])
+  if (coursesError) console.error('[AdminCoursesPage]', coursesError)
+  // departments only feeds CreateCourseForm's dropdown — logged, not bannered (see plan Global Constraints)
+  if (departmentsError) console.error('[AdminCoursesPage]', departmentsError)
 
   return (
     <>
@@ -34,7 +41,9 @@ export default async function AdminCoursesPage() {
       <main className="flex-1 p-6 max-w-5xl space-y-6">
         <CreateCourseForm departments={departments ?? []} />
 
-        {!courses?.length ? (
+        {coursesError ? (
+          <QueryErrorBanner message="Failed to load courses. Please refresh." />
+        ) : !courses?.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
             <BookOpen size={32} className="text-text-muted mb-3" />
             <p className="text-sm font-medium text-text-primary mb-1">No courses yet</p>

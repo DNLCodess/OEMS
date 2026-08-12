@@ -20,11 +20,20 @@ export default async function LabLobbyPage({ params }) {
   // nothing sensitive (instructions, questions, status detail) is exposed
   // before authentication.
   const adminClient = createAdminClient()
-  const { data: examBasic } = await adminClient
+  const { data: examBasic, error: examBasicError } = await adminClient
     .from('exams')
     .select('id')
     .eq('access_code', upperCode)
     .maybeSingle()
+
+  if (examBasicError) {
+    console.error('[LabLobbyPage]', examBasicError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load this exam. Please refresh.</p>
+      </div>
+    )
+  }
 
   if (!examBasic) notFound()
 
@@ -56,7 +65,7 @@ export default async function LabLobbyPage({ params }) {
   // hold), then everything below is unchanged from before this task.
   const user = await requireRole('student')
 
-  const { data: exam } = await supabase
+  const { data: exam, error: examError } = await supabase
     .from('exams')
     .select(`
       id, title, status, exam_type, academic_session, semester,
@@ -66,6 +75,15 @@ export default async function LabLobbyPage({ params }) {
     `)
     .eq('access_code', upperCode)
     .single()
+
+  if (examError) {
+    console.error('[LabLobbyPage]', examError)
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <p className="text-sm text-text-muted">Failed to load this exam. Please refresh.</p>
+      </div>
+    )
+  }
 
   if (!exam) notFound()
 
@@ -85,21 +103,26 @@ export default async function LabLobbyPage({ params }) {
   }
 
   // Check for existing attempt
-  const { data: attempt } = await supabase
+  const { data: attempt, error: attemptError } = await supabase
     .from('attempts')
     .select('id, status')
     .eq('exam_id', exam.id)
     .eq('student_id', user.id)
     .maybeSingle()
+  // A failure here just means the "Start Exam" CTA shows instead of an
+  // automatic redirect — startExam() independently re-checks for an
+  // in-progress attempt and resumes it, so there's no correctness impact.
+  if (attemptError) console.error('[LabLobbyPage]', attemptError)
 
   if (attempt?.status === 'in_progress') {
     redirect(`/lab/${upperCode}/attempt/${attempt.id}`)
   }
 
-  const { data: examQuestions } = await supabase
+  const { data: examQuestions, error: examQuestionsError } = await supabase
     .from('exam_questions')
     .select('marks')
     .eq('exam_id', exam.id)
+  if (examQuestionsError) console.error('[LabLobbyPage]', examQuestionsError)
 
   const questionCount = examQuestions?.length ?? 0
   const totalMarks    = (examQuestions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
@@ -143,16 +166,20 @@ export default async function LabLobbyPage({ params }) {
             <p className="text-2xl font-bold text-text-primary">{exam.duration_minutes}</p>
             <p className="text-xs text-text-muted mt-0.5">minutes</p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-4 text-center">
-            <BookOpen size={20} className="mx-auto mb-2 text-text-muted" />
-            <p className="text-2xl font-bold text-text-primary">{questionCount}</p>
-            <p className="text-xs text-text-muted mt-0.5">questions</p>
-          </div>
-          <div className="bg-surface border border-border rounded-xl p-4 text-center">
-            <FileText size={20} className="mx-auto mb-2 text-text-muted" />
-            <p className="text-2xl font-bold text-text-primary">{totalMarks}</p>
-            <p className="text-xs text-text-muted mt-0.5">marks · pass {exam.pass_mark}%</p>
-          </div>
+          {!examQuestionsError && (
+            <div className="bg-surface border border-border rounded-xl p-4 text-center">
+              <BookOpen size={20} className="mx-auto mb-2 text-text-muted" />
+              <p className="text-2xl font-bold text-text-primary">{questionCount}</p>
+              <p className="text-xs text-text-muted mt-0.5">questions</p>
+            </div>
+          )}
+          {!examQuestionsError && (
+            <div className="bg-surface border border-border rounded-xl p-4 text-center">
+              <FileText size={20} className="mx-auto mb-2 text-text-muted" />
+              <p className="text-2xl font-bold text-text-primary">{totalMarks}</p>
+              <p className="text-xs text-text-muted mt-0.5">marks · pass {exam.pass_mark}%</p>
+            </div>
+          )}
         </div>
 
         {/* Instructions */}

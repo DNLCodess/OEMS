@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 
 export const metadata = { title: 'Activity Log — OEMS' }
 
@@ -47,7 +48,8 @@ export default async function AdminLogsPage({ searchParams }) {
   if (roleFilter === 'staff') query = query.in('subject_role', STAFF_ROLES)
   if (roleFilter === 'students') query = query.eq('subject_role', 'student')
 
-  const { data: logs } = await query
+  const { data: logs, error } = await query
+  if (error) console.error('[AdminLogsPage]', error)
 
   return (
     <>
@@ -68,7 +70,9 @@ export default async function AdminLogsPage({ searchParams }) {
           <button type="submit" className="text-xs font-medium text-primary hover:underline">Apply</button>
         </form>
 
-        {!logs?.length ? (
+        {error ? (
+          <QueryErrorBanner message="Failed to load activity log. Please refresh." />
+        ) : !logs?.length ? (
           <EmptyState icon={History} title="No activity yet" description="Account actions and sign-ins will appear here." />
         ) : (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">

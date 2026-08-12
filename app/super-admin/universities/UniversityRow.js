@@ -6,7 +6,7 @@ import { updateUniversityBranding } from '@/lib/actions/admin'
 import { Input } from '@/components/ui/Input'
 import { SubmitButton } from '@/components/ui/Button'
 
-export function UniversityRow({ university, counts }) {
+export function UniversityRow({ university, counts, countsUnavailable = false }) {
   const [editing, setEditing] = useState(false)
   const updateAction = updateUniversityBranding.bind(null, university.id)
   const [state, formAction] = useActionState(updateAction, null)
@@ -27,18 +27,22 @@ export function UniversityRow({ university, counts }) {
           </div>
         </div>
         <div className="flex items-center gap-6 text-center shrink-0">
-          <div>
-            <p className="text-lg font-bold text-text-primary tabular-nums">{counts.lecturers}</p>
-            <p className="text-xs text-text-muted">Lecturers</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-text-primary tabular-nums">{counts.students}</p>
-            <p className="text-xs text-text-muted">Students</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-text-primary tabular-nums">{counts.total}</p>
-            <p className="text-xs text-text-muted">Total Users</p>
-          </div>
+          {!countsUnavailable && (
+            <>
+              <div>
+                <p className="text-lg font-bold text-text-primary tabular-nums">{counts.lecturers}</p>
+                <p className="text-xs text-text-muted">Lecturers</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-text-primary tabular-nums">{counts.students}</p>
+                <p className="text-xs text-text-muted">Students</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-text-primary tabular-nums">{counts.total}</p>
+                <p className="text-xs text-text-muted">Total Users</p>
+              </div>
+            </>
+          )}
           <button
             onClick={() => setEditing(v => !v)}
             className="p-2 rounded-lg text-text-muted hover:text-primary hover:bg-slate-50 transition-colors"

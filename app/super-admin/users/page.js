@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import { Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { SuperAdminUserActions } from './SuperAdminUserActions'
 
 export const metadata = { title: 'All Users — OEMS' }
@@ -25,12 +26,13 @@ export default async function SuperAdminUsersPage() {
   const user     = await requireRole('super_admin')
   const supabase = await createClient()
 
-  const { data: users } = await supabase
+  const { data: users, error } = await supabase
     .from('users')
     .select('id, full_name, email, role, matric_number, is_active, removed_at, created_at, universities ( name )')
     .neq('id', user.id)
     .order('created_at', { ascending: false })
     .limit(200)
+  if (error) console.error('[SuperAdminUsersPage]', error)
 
   return (
     <>
@@ -39,7 +41,9 @@ export default async function SuperAdminUsersPage() {
         subtitle={`${users?.length ?? 0} users across the platform`}
       />
       <main className="flex-1 p-6">
-        {!users?.length ? (
+        {error ? (
+          <QueryErrorBanner message="Failed to load users. Please refresh." />
+        ) : !users?.length ? (
           <EmptyState icon={Users} title="No users yet" description="Users appear here once universities are set up." />
         ) : (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
