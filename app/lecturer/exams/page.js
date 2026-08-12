@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { ExamCard } from '@/components/exams/ExamCard'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Button } from '@/components/ui/Button'
 
 export const metadata = { title: 'My Exams' }
@@ -35,7 +36,8 @@ export default async function ExamsPage({ searchParams }) {
 
   if (status) query = query.eq('status', status)
 
-  const { data: exams } = await query
+  const { data: exams, error } = await query
+  if (error) console.error('[ExamsPage]', error)
 
   const enriched = (exams ?? []).map(exam => ({
     ...exam,
@@ -82,7 +84,9 @@ export default async function ExamsPage({ searchParams }) {
       </div>
 
       {/* Content */}
-      {enriched.length === 0 ? (
+      {error ? (
+        <QueryErrorBanner message="Failed to load exams. Please refresh." />
+      ) : enriched.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title={status ? `No ${status} exams` : 'No exams yet'}
