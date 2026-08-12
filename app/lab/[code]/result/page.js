@@ -84,7 +84,6 @@ export default async function LabResultPage({ params }) {
     .eq('exam_id', examId)
     .eq('student_id', user.id)
     .maybeSingle()
-  if (attemptError) console.error('[LabResultPage]', attemptError)
 
   // A submitted attempt normally has a result row by now (written in the
   // same request that marks it submitted) — this guards a rare edge case
@@ -105,8 +104,8 @@ export default async function LabResultPage({ params }) {
   // Hard stop, never render a possibly-wrong score — the score card and
   // breakdown depend entirely on result/examQuestions being trustworthy
   // (see plan design doc: correctness-critical, not a dashboard stat).
-  if (resultError || examQuestionsError) {
-    console.error('[LabResultPage]', resultError || examQuestionsError)
+  if (attemptError || resultError || examQuestionsError) {
+    console.error('[LabResultPage]', attemptError || resultError || examQuestionsError)
     return (
       <div className="flex-1 flex items-center justify-center px-4 text-center">
         <p className="text-sm text-text-muted max-w-sm">

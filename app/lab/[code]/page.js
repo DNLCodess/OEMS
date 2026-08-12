@@ -160,25 +160,27 @@ export default async function LabLobbyPage({ params }) {
         </div>
 
         {/* Stats */}
-        {!examQuestionsError && (
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-surface border border-border rounded-xl p-4 text-center">
-              <Clock size={20} className="mx-auto mb-2 text-text-muted" />
-              <p className="text-2xl font-bold text-text-primary">{exam.duration_minutes}</p>
-              <p className="text-xs text-text-muted mt-0.5">minutes</p>
-            </div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-surface border border-border rounded-xl p-4 text-center">
+            <Clock size={20} className="mx-auto mb-2 text-text-muted" />
+            <p className="text-2xl font-bold text-text-primary">{exam.duration_minutes}</p>
+            <p className="text-xs text-text-muted mt-0.5">minutes</p>
+          </div>
+          {!examQuestionsError && (
             <div className="bg-surface border border-border rounded-xl p-4 text-center">
               <BookOpen size={20} className="mx-auto mb-2 text-text-muted" />
               <p className="text-2xl font-bold text-text-primary">{questionCount}</p>
               <p className="text-xs text-text-muted mt-0.5">questions</p>
             </div>
+          )}
+          {!examQuestionsError && (
             <div className="bg-surface border border-border rounded-xl p-4 text-center">
               <FileText size={20} className="mx-auto mb-2 text-text-muted" />
               <p className="text-2xl font-bold text-text-primary">{totalMarks}</p>
               <p className="text-xs text-text-muted mt-0.5">marks · pass {exam.pass_mark}%</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Instructions */}
         {exam.instructions && (

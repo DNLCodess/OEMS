@@ -22,7 +22,7 @@ export default async function LabAttemptPage({ params }) {
     .eq('access_code', code.toUpperCase())
     .single()
 
-  if (examError) {
+  if (examError && examError.code !== 'PGRST116') {
     console.error('[LabAttemptPage]', examError)
     return (
       <div className="flex-1 flex items-center justify-center px-4">
@@ -40,7 +40,7 @@ export default async function LabAttemptPage({ params }) {
     .eq('student_id', user.id)
     .single()
 
-  if (attemptError) {
+  if (attemptError && attemptError.code !== 'PGRST116') {
     console.error('[LabAttemptPage]', attemptError)
     return (
       <div className="flex-1 flex items-center justify-center px-4">
@@ -69,19 +69,23 @@ export default async function LabAttemptPage({ params }) {
     redirect(`/lab/${code}/result`)
   }
 
-  const { data: rawQuestions, error: rawQuestionsError } = await supabase
-    .from('exam_questions')
-    .select(`
-      id, question_id, order_index, marks,
-      question_bank:question_id ( id, type, body, options, difficulty )
-    `)
-    .eq('exam_id', exam.id)
-    .order('order_index')
-
-  const { data: responses, error: responsesError } = await supabase
-    .from('responses')
-    .select('question_id, student_answer')
-    .eq('attempt_id', attemptId)
+  const [
+    { data: rawQuestions, error: rawQuestionsError },
+    { data: responses, error: responsesError },
+  ] = await Promise.all([
+    supabase
+      .from('exam_questions')
+      .select(`
+        id, question_id, order_index, marks,
+        question_bank:question_id ( id, type, body, options, difficulty )
+      `)
+      .eq('exam_id', exam.id)
+      .order('order_index'),
+    supabase
+      .from('responses')
+      .select('question_id, student_answer')
+      .eq('attempt_id', attemptId),
+  ])
 
   // Hard stop, no ExamInterface — rendering the interface with missing
   // questions or missing saved answers during a live, timed attempt is
