@@ -68,14 +68,22 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   useEffect(() => { answersRef.current = state.answers }, [state.answers])
 
   // ── Local draft persistence ─────────────────────────────────────────────────
-  // Writes on every state change — not debounced like the server save, since
-  // a localStorage write is cheap and the whole point is zero-latency
-  // durability against a refresh or crash. timeRemaining is deliberately
-  // excluded (see serializeAttemptDraft) — it's always recomputed from the
-  // server-authoritative startedAt on the next mount, never trusted from here.
+  // Writes on every change to the persisted slices — not debounced like the
+  // server save, since a localStorage write is cheap and the whole point is
+  // zero-latency durability against a refresh or crash. timeRemaining is
+  // deliberately excluded, both here (see dependency array) and in
+  // serializeAttemptDraft itself — it's always recomputed from the
+  // server-authoritative startedAt on the next mount, never trusted from
+  // here. Depending on the specific slices rather than the whole `state`
+  // object also means the once-a-second TICK action (which produces a new
+  // state object every tick regardless of whether anything persisted
+  // actually changed) doesn't re-run this effect — important both for not
+  // writing to localStorage ~3600 times/hour for no reason, and so this
+  // effect can't fire on a stray tick and re-write the draft just after
+  // doSubmit has called clearDraft on the way out.
   useEffect(() => {
     writeDraft(draftKey, serializeAttemptDraft(state))
-  }, [state, draftKey])
+  }, [state.answers, state.currentIndex, state.flagged, draftKey])
 
   // ── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -156,9 +164,14 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
         doSubmit(true)
         return
       }
+      if (result?.error) {
+        setSaveStatus(prev => ({ ...prev, [questionId]: 'error' }))
+        return
+      }
       setSaveStatus(prev => ({ ...prev, [questionId]: 'saved' }))
       setTimeout(() => {
         setSaveStatus(prev => {
+          if (prev[questionId] !== 'saved') return prev
           const { [questionId]: _discard, ...rest } = prev
           return rest
         })
@@ -189,9 +202,21 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   const saveStatusRef = useRef(saveStatus)
   useEffect(() => { saveStatusRef.current = saveStatus }, [saveStatus])
 
+  // Guards against piling up concurrent retries for the same question — on a
+  // genuinely hung connection (the exact case this sweep exists for) a
+  // question can still be 'error' by the next 5s tick even though a retry
+  // for it is already in flight. Since the server-side write is
+  // last-write-wins, letting two overlapping retries race could let a slow
+  // one land after a newer save and clobber it with a stale value.
+  const retryingRef = useRef(new Set())
+
   const retryFailedSaves = useCallback(() => {
     Object.entries(saveStatusRef.current).forEach(([questionId, status]) => {
-      if (status === 'error') saveQuestion(questionId, answersRef.current[questionId])
+      if (status !== 'error' || retryingRef.current.has(questionId)) return
+      retryingRef.current.add(questionId)
+      saveQuestion(questionId, answersRef.current[questionId]).finally(() => {
+        retryingRef.current.delete(questionId)
+      })
     })
   }, [saveQuestion])
 
@@ -227,14 +252,17 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
     saveTimers.current = {}
 
     try {
-      await Promise.all(
+      const saveResults = await Promise.all(
         questions.map(q => {
           const a = answersRef.current[q.question_id]
           return a !== undefined && a !== null && a !== ''
             ? saveAnswer(attemptId, q.question_id, a)
-            : Promise.resolve()
+            : Promise.resolve(null)
         })
       )
+      if (saveResults.some(r => r?.error)) {
+        throw new Error('One or more answers failed to save')
+      }
 
       const result = await submitExam(attemptId)
       if (result?.error) {
@@ -249,10 +277,23 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
       router.push(`/lab/${labCode}/result`)
     } catch {
-      // Network failure reaching the server at all (not a server-returned
-      // error) — recover to a retryable state instead of spinning forever.
-      // Nothing is lost: the local draft is untouched until submit actually
-      // succeeds.
+      // Either a network failure reaching the server at all, or one of the
+      // flushed saves above came back with a server-reported {error} (not
+      // just a thrown exception) — either way, recover to a retryable state
+      // instead of spinning forever. Nothing is lost: the local draft is
+      // untouched until submit actually succeeds. Any question that was
+      // still 'saving' when the debounce timers got cleared above has no
+      // pending timer left to eventually resolve it, so without this it
+      // would be stuck on the spinner forever and the retry sweep would
+      // never pick it up (it only watches for 'error') — demote those to
+      // 'error' so the sweep adopts them.
+      setSaveStatus(prev => {
+        const next = { ...prev }
+        for (const key of Object.keys(next)) {
+          if (next[key] === 'saving') next[key] = 'error'
+        }
+        return next
+      })
       toast.error("Couldn't submit — check your connection and try again.")
       setSubmitting(false)
       submittingRef.current = false
