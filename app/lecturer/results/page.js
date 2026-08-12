@@ -111,14 +111,16 @@ export default async function LecturerResultsPage() {
       )}
 
       {/* Platform summary */}
-      <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
-        <SummaryCard label="Total Submissions" value={totalSubmissions} color="neutral" />
-        <SummaryCard
-          label="Overall Pass Rate"
-          value={overallPassRate !== null ? `${overallPassRate}%` : '—'}
-          color={overallPassRate !== null ? (overallPassRate >= 60 ? 'success' : 'danger') : 'neutral'}
-        />
-      </div>
+      {!secondaryError && (
+        <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
+          <SummaryCard label="Total Submissions" value={totalSubmissions} color="neutral" />
+          <SummaryCard
+            label="Overall Pass Rate"
+            value={overallPassRate !== null ? `${overallPassRate}%` : '—'}
+            color={overallPassRate !== null ? (overallPassRate >= 60 ? 'success' : 'danger') : 'neutral'}
+          />
+        </div>
+      )}
 
       {/* Exam cards */}
       <div className="grid gap-5">
@@ -136,7 +138,7 @@ export default async function LecturerResultsPage() {
                 <p className="font-semibold text-text-primary">{exam.title}</p>
                 <p className="text-xs text-text-muted mt-0.5">{exam.courses?.course_title} · Pass mark: {exam.pass_mark}% · Total: {exam.totalMarks} marks</p>
               </div>
-              {exam.submitted > 0 ? (
+              {secondaryError ? null : exam.submitted > 0 ? (
                 <Link
                   href={`/lecturer/exams/${exam.id}/results`}
                   className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors"
@@ -150,7 +152,7 @@ export default async function LecturerResultsPage() {
             </div>
 
             {/* Stats row */}
-            {exam.submitted > 0 && (
+            {!secondaryError && exam.submitted > 0 && (
               <div className="border-t border-border bg-slate-50/60 px-5 py-3 grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <Stat label="Submissions"   value={exam.submitted} />
                 <Stat
@@ -165,7 +167,7 @@ export default async function LecturerResultsPage() {
             )}
 
             {/* Pass rate bar */}
-            {exam.passRate !== null && (
+            {!secondaryError && exam.passRate !== null && (
               <div className="px-5 pb-4 pt-2">
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-text-muted">{exam.passCount} passed · {exam.resultCount - exam.passCount} failed</span>
