@@ -1,8 +1,8 @@
 'use client'
 
-import { Bookmark } from 'lucide-react'
+import { Bookmark, RefreshCw } from 'lucide-react'
 
-export function QuestionNav({ questions, answers, flagged, currentIndex, onNavigate }) {
+export function QuestionNav({ questions, answers, flagged, currentIndex, saveStatus = {}, onNavigate }) {
   const answeredCount = questions.filter(q => {
     const a = answers[q.question_id]
     if (a === null || a === undefined || a === '') return false
@@ -27,6 +27,7 @@ export function QuestionNav({ questions, answers, flagged, currentIndex, onNavig
           })()
           const isFlagged  = flagged.has(q.question_id)
           const isCurrent  = index === currentIndex
+          const isUnsynced = saveStatus[q.question_id] === 'error'
 
           let btnClass = 'relative w-full aspect-square rounded-lg text-xs font-medium transition-all flex items-center justify-center '
 
@@ -46,12 +47,15 @@ export function QuestionNav({ questions, answers, flagged, currentIndex, onNavig
             <button
               key={q.question_id}
               onClick={() => onNavigate(index)}
-              aria-label={`Question ${index + 1}${isAnswered ? ', answered' : ''}${isFlagged ? ', flagged' : ''}`}
+              aria-label={`Question ${index + 1}${isAnswered ? ', answered' : ''}${isFlagged ? ', flagged' : ''}${isUnsynced ? ', not yet synced' : ''}`}
               className={btnClass}
             >
               {index + 1}
               {isFlagged && (
                 <Bookmark size={8} className="absolute top-0.5 right-0.5 fill-current" />
+              )}
+              {isUnsynced && (
+                <RefreshCw size={8} className="absolute top-0.5 left-0.5 text-amber-600" />
               )}
             </button>
           )
