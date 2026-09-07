@@ -3,6 +3,9 @@
 **Date:** 2026-09-07
 **Status:** Design approved, implementation pending
 **Owner:** DNLCodess
+**Revised:** 2026-09-07 — proctoring/anti-cheat deferred to v2; exam-entry
+access-code lifecycle spelled out; lab IP allowlist added as the primary
+in-hall enforcement control.
 
 ---
 
@@ -18,6 +21,16 @@ The driving reasons: exam-hall deployments have no reliable internet,
 the institution wants data on-premises, and the network is
 deliberately air-gapped to prevent cheating.
 
+**Exam integrity for v1** relies on three controls, not on camera
+proctoring or browser lockdown (both deferred to v2):
+1. the air-gapped LAN (no route off-network),
+2. a per-exam **access code** the invigilator hands out in the hall and
+   can revoke at any moment, and
+3. a **lab IP allowlist** — only client machines whose IP is on the
+   institution's approved list may enter or answer an exam, so a valid
+   matric number + a leaked code from a personal laptop/phone on the LAN
+   is still refused.
+
 ### Decisions locked in (from brainstorming)
 
 | Decision | Choice |
@@ -28,6 +41,8 @@ deliberately air-gapped to prevent cheating.
 | DB access layer | **Prisma** (SQL Server provider) + a thin repository layer at `lib/db`. |
 | Migration style | **Ports-and-adapters, incremental** — introduce `lib/db` + `lib/auth` boundaries, translate RLS policies to code, rewrite the 52 Supabase call sites feature-slice by feature-slice with tests green at each step. |
 | Concurrency target | **150–200 concurrent students** on one exam sitting. |
+| Proctoring / anti-cheat | **Deferred to v2.** v1 exam integrity = air-gapped LAN + revocable per-exam access code + lab IP allowlist. |
+| In-hall enforcement | **Lab IP allowlist** — exam entry and answer-saving only from approved lab-PC IPs/CIDRs. |
 
 ### Non-goals
 
@@ -36,6 +51,11 @@ deliberately air-gapped to prevent cheating.
 - Migrating historical Supabase data.
 - Keeping Supabase as a fallback runtime.
 - Mobile apps.
+- **Camera-snapshot proctoring and browser-lockdown anti-cheat
+  (fullscreen enforcement, clipboard/context-menu blocking, tab-blur
+  logging)** — deferred to **v2**. The existing
+  `components/student/ProctoringCamera.js` and any client lockdown code
+  are removed/disabled during the migration, not ported.
 
 ---
 
@@ -54,7 +74,7 @@ deliberately air-gapped to prevent cheating.
   │   └───────────────┬─────────────────────────┘ │
   │                   │ localhost:1433 (TCP, loopback only) │
   │   ┌───────────────▼─────────────────────────┐ │
-  │   │ SQL Server 2022  (DB: PCU CBT)              │ │
+  │   │ SQL Server 2022  (DB: pcu_cbt)              │ │
   │   └─────────────────────────────────────────┘ │
   │   Windows Service wrapper + Task Scheduler backup │
   └───────────────────────────────────────────────┘
@@ -81,7 +101,8 @@ policy becomes an explicit `WHERE` clause + role guard in a
 | `lib/auth/password.js` | `hash()` / `verify()` (argon2id) | `@node-rs/argon2` |
 | `lib/dal.js` | `getAuthUser()`, `requireRole()` — unchanged signature, now reads the session cookie instead of Supabase | `lib/auth`, `lib/db` |
 | `lib/actions/*.js` | Server Actions — unchanged responsibilities, call repositories instead of Supabase client | `lib/dal`, `lib/db` |
-| `middleware.js` | Cookie-presence redirect only (no DB) | `lib/auth` (cookie name) |
+| `lib/security/clientIp.js` | Resolve the true client IP (trusted-proxy aware) and test it against the lab allowlist (IP + CIDR) | `lib/db` (allowlist repo), config |
+| `middleware.js` | Cookie-presence redirect only (no DB). IP allowlist is **not** enforced here (middleware can't see the socket IP reliably behind the proxy without extra config) — it is enforced in the exam Server Actions. | `lib/auth` (cookie name) |
 
 ---
 
@@ -109,9 +130,16 @@ IDs are stable references for the implementation plan.
   per request. Behaviour matches today's `lib/dal.js`.
 - **FR-AUTH-6** **Credential-less student exam entry** (replaces the
   Supabase magic-link mint): student submits **matric number +
-  6-char exam access code**. On success the server creates a session
-  with `channel='exam_access'` and `verified_exam_id=<that exam>`.
-  Redirect to `/lab/{code}`.
+  the exam's current access code**. The server, in order, checks:
+  (a) the request's client IP is on the **lab allowlist** (FR-LAB-1) —
+  else reject with a distinct "not an approved exam machine" message and
+  **no** rate-limit charge; (b) rate limit (FR-AUTH-9); (c) an exam with
+  that access code exists, is `live`, and the code is **not revoked**
+  (FR-EXAM-7); (d) the matric number belongs to an active student with
+  access to that exam; (e) entry window open **or** an existing
+  `in_progress` attempt. On success the server creates a session with
+  `channel='exam_access'` and `verified_exam_id=<that exam>`, records the
+  client IP on the session, and redirects to `/lab/{code}`.
 - **FR-AUTH-7** **Credential-less result lookup**: student submits
   **matric number + date of birth**. On success, session with
   `channel='result_lookup'`, `verified_exam_id=NULL`.
@@ -182,11 +210,61 @@ IDs are stable references for the implementation plan.
 - **FR-EXAM-5** Bulk matric-list import for `exam_access` (per the
   2026-08-11 bulk-import design) is preserved.
 
+#### Exam access code lifecycle
+
+- **FR-EXAM-6** Each exam has a short **access code** (6 uppercase
+  alphanumeric chars, ambiguous chars `0/O/1/I` excluded). The lecturer
+  **generates** it from the exam page; it is displayed large and
+  printable so the invigilator can write it on the board / hand it out
+  to everyone in the lab.
+- **FR-EXAM-7** The lecturer can **revoke** the code at any time
+  (during the exam included). Revoking sets `access_code_revoked_at`.
+  A revoked code immediately fails **new** exam entry (FR-AUTH-6c); it
+  does **not** affect students already `in_progress` (they keep their
+  session and the FR-ATT-3 resume path). Revoke + generate again mints a
+  fresh code (old one stays dead).
+- **FR-EXAM-8** The access code is only accepted while the exam is
+  `live` and within the entry window; outside that it is inert
+  regardless of revoke state.
+- **FR-EXAM-9** Access codes are unique among **non-revoked** exams so a
+  code always resolves to exactly one exam.
+
+### 3.4a Lab access control (IP allowlist)
+
+- **FR-LAB-1** The institution maintains a **lab IP allowlist**: a set
+  of entries, each a single IPv4 address **or** a CIDR range (e.g.
+  `192.168.1.0/24`), with an optional label ("Lab A row 1", etc.) and an
+  `is_active` flag. Managed by `school_admin` / `super_admin` in an admin
+  page (`/admin/lab-network` or under settings).
+- **FR-LAB-2** **Enforcement points** — the resolved client IP must
+  match an active allowlist entry for: student exam-entry verification
+  (FR-AUTH-6a), `startExam`, and `saveAnswer`. `submitExam` is
+  **exempt** (finalising an attempt already legitimately started must
+  never be blocked). A mismatch returns a distinct, non-rate-limited
+  error. Staff and result-lookup flows are **not** IP-restricted.
+- **FR-LAB-3** **Per-exam override**: an exam may set
+  `enforce_ip_allowlist` (default **true** for `exam_mode='lab'`, default
+  **false** for `remote`). When false, FR-LAB-2 is skipped for that exam.
+- **FR-LAB-4** If the allowlist is **empty** and `enforce_ip_allowlist`
+  is true, exam entry **fails closed** for everyone (misconfiguration is
+  safer than an open door) — the admin UI warns loudly about this state.
+- **FR-LAB-5** Client IP resolution: when `TRUST_PROXY=1` (HTTPS/reverse
+  proxy deployment) the app reads the **last** hop of
+  `X-Forwarded-For` as set by the local proxy; otherwise it uses the
+  direct socket remote address. The mode is explicit config, never
+  auto-detected (an attacker-set `X-Forwarded-For` must never be trusted
+  when there is no proxy). See NFR-SEC-9.
+- **FR-LAB-6** Every allowlist rejection is written to
+  `admin_action_log` (`action='exam_entry_ip_blocked'`, target =
+  matric number, meta = attempted IP) so invigilators/admins can see
+  off-network attempts after the fact.
+
 ### 3.5 Attempts, Autosave & Resilience
 
 - **FR-ATT-1** A student starts **one attempt per exam** (unique
   `(exam_id, student_id)`). Starting requires a live exam, an
-  `exam_access` session verified for that exam, and either an open
+  `exam_access` session verified for that exam, a client IP on the lab
+  allowlist (FR-LAB-2, when enforced for the exam), and either an open
   entry window **or** an existing `in_progress` attempt (the recovery
   escape hatch — unchanged from today).
 - **FR-ATT-2** **Autosave**: the client saves answers via a Server
@@ -200,7 +278,9 @@ IDs are stable references for the implementation plan.
   correct remaining time (`started_at + duration_minutes`).
 - **FR-ATT-4** **Server-side time backstop**: `saveAnswer` rejects
   writes after `started_at + duration_minutes`; `submitExam` is always
-  callable (the only way out of time-over).
+  callable (the only way out of time-over). `saveAnswer` also re-checks
+  the lab allowlist (FR-LAB-2); `submitExam` does **not** (a student
+  must always be able to finalise an attempt they legitimately started).
 - **FR-ATT-5** **Offline resilience on the client** (per the
   2026-08-12 offline-resilience design) is preserved: queued answers in
   `localStorage`, retry, visible sync status.
@@ -217,26 +297,20 @@ IDs are stable references for the implementation plan.
 - **FR-RES-3** Lecturer results dashboard, per-exam results, and
   spreadsheet export (`xlsx`) are unchanged.
 
-### 3.7 Proctoring & Anti-Cheating
+### 3.7 Proctoring & Anti-Cheating — **deferred to v2**
 
-- **FR-PROCTOR-1** Camera-snapshot proctoring
-  (`components/student/ProctoringCamera.js`) currently uploads to
-  Supabase Storage. Replace the sink with **local disk on the server**
-  (`./data/proctoring/{examId}/{attemptId}/{timestamp}.jpg`) written
-  via a Server Action, path recorded in a `proctoring_snapshots` table.
-  **Constraint:** `getUserMedia` requires a secure context — see
-  NFR-SEC-4; if HTTPS is not configured, proctoring is disabled by a
-  runtime flag rather than failing silently.
-- **FR-CHEAT-1** During an `in_progress` attempt the exam UI:
-  enforces **fullscreen**, blocks **copy / paste / cut / context-menu**,
-  and logs **tab/window blur & `visibilitychange`** events.
-- **FR-CHEAT-2** Blur/visibility/fullscreen-exit events are POSTed to a
-  Server Action and stored in an `attempt_events` table
-  (`attempt_id`, `type`, `occurred_at`, `meta` JSON), visible on the
-  lecturer's per-attempt view.
-- **FR-CHEAT-3** Excessive violations (configurable threshold, default
-  off) may flag an attempt for review — **flag only, never
-  auto-submit**.
+Not in scope for this migration. During the port:
+
+- **FR-PROCTOR-0** `components/student/ProctoringCamera.js` and its
+  Supabase Storage upload are **removed**. The exam's
+  `proctoring_enabled` column is retained in the schema (unused, default
+  `false`) so v2 can light it up without a migration.
+- No fullscreen enforcement, clipboard/context-menu blocking, or
+  tab-blur logging is ported. In-hall integrity for v1 is the
+  air-gapped LAN + access code (FR-EXAM-6/7) + IP allowlist (§3.4a).
+- v2 scope (separate design): camera snapshots to local disk, an
+  `attempt_events` table for blur/visibility/fullscreen-exit,
+  lecturer-side review + flag-for-review.
 
 ### 3.8 Auditing
 
@@ -278,19 +352,27 @@ One migration history under `prisma/migrations`.
 
 ### 4.2 New / changed tables
 
-- **`sessions`** — `id` (token) PK, `user_id` FK, `channel`
+- **`sessions`** — `id` (hashed token) PK, `user_id` FK, `channel`
   (`password` | `exam_access` | `result_lookup`), `verified_exam_id`
-  NULL FK, `created_at`, `last_seen_at`, `expires_at`. Index on
+  NULL FK, `client_ip` NVARCHAR(45) NULL (recorded at mint,
+  FR-AUTH-6), `created_at`, `last_seen_at`, `expires_at`. Index on
   `user_id`, on `expires_at` (cleanup sweep).
 - **`users`** — add `password_hash`, `must_change_password`. `date_of_birth`
   already referenced by student result lookup — ensure column exists
   (`DATE NULL`).
 - **`verification_attempts`** — unchanged shape (`matric_number`, `ip`,
   `created_at`).
-- **`attempt_events`** — new (`id`, `attempt_id` FK, `type`,
-  `occurred_at`, `meta` NVARCHAR(MAX)).
-- **`proctoring_snapshots`** — new (`id`, `attempt_id` FK,
-  `exam_id`, `file_path`, `captured_at`).
+- **`exams`** — add `access_code_revoked_at` DATETIME2 NULL (FR-EXAM-7),
+  `enforce_ip_allowlist` BIT NOT NULL DEFAULT 1 (FR-LAB-3). Existing
+  `access_code` / `lab_code` columns retained. Uniqueness on
+  `access_code` becomes a **filtered unique index**
+  `WHERE access_code IS NOT NULL AND access_code_revoked_at IS NULL`
+  (FR-EXAM-9).
+- **`lab_ip_allowlist`** — new (`id` PK, `entry` NVARCHAR(64) NOT NULL —
+  a single IPv4 or CIDR, `label` NVARCHAR(120) NULL, `is_active` BIT
+  NOT NULL DEFAULT 1, `created_by` FK, `created_at`). Institution-wide
+  (carries `university_id` for consistency with the single-tenant
+  convention).
 - Everything else: 1:1 port of the current schema (faculties,
   departments, courses, question_bank, exams, exam_questions,
   exam_access, attempts, responses, results, admin_action_log).
@@ -323,8 +405,9 @@ sample faculty/department/course + a demo lecturer/student.
   `pool_timeout` = 20 s. Single `PrismaClient` singleton (guard against
   Next dev hot-reload duplication).
 - **NFR-PERF-4** **DB indexes**: port all current indexes; add
-  `responses (attempt_id, question_id)` unique (already), `attempt_events
-  (attempt_id)`, `sessions (expires_at)`.
+  `responses (attempt_id, question_id)` unique (already),
+  `sessions (expires_at)`, `sessions (user_id)`, and the filtered unique
+  index on `exams.access_code` (FR-EXAM-9).
 - **NFR-PERF-5** `submitExam` grades in a **single transaction**;
   autosave upserts are **not** wrapped in long transactions.
 - **NFR-PERF-6** A **load test** (k6 or Artillery script in
@@ -376,11 +459,13 @@ sample faculty/department/course + a demo lecturer/student.
   strong password and is then **disabled**; the app connects as a
   dedicated least-privilege login (`pcu-cbt_app`) with `db_datareader` +
   `db_datawriter` + EXECUTE on the DB only.
-- **NFR-SEC-4** **HTTPS on the LAN**: run a local reverse proxy
-  (**Caddy** with its internal CA, or `mkcert`-issued cert) terminating
-  TLS on **443** and proxying to Node on 3000. Required for: secure
-  cookies, `getUserMedia` proctoring, clipboard API. If skipped,
-  proctoring auto-disables and cookies drop `Secure`.
+- **NFR-SEC-4** **HTTPS on the LAN is optional for v1** (proctoring —
+  the main driver — is deferred). Plain HTTP on `192.168.x.x:3000` is
+  acceptable: the session cookie stays HttpOnly + SameSite=Lax and
+  drops only the `Secure` flag, which on an air-gapped LAN with no
+  route off-network is a low residual risk. If HTTPS is wanted anyway,
+  run **Caddy** (internal CA) or an `mkcert` cert terminating TLS on
+  443 → Node 3000, and set `TRUST_PROXY=1` (NFR-SEC-9).
 - **NFR-SEC-5** DB credentials and the session-signing secret live in
   `.env.production` on the server, **not** in git. `.env.local.example`
   is restored with SQL Server placeholders (closes a TODO).
@@ -392,6 +477,18 @@ sample faculty/department/course + a demo lecturer/student.
 - **NFR-SEC-8** No telemetry / external calls at runtime
   (`NEXT_TELEMETRY_DISABLED=1`, Prisma `checksum`/engine download only
   at build).
+- **NFR-SEC-9** **Client-IP trust model** (drives FR-LAB-5): a single
+  env flag `TRUST_PROXY`. `TRUST_PROXY=0` (default, plain-HTTP
+  deployment) → client IP = direct socket address, `X-Forwarded-For` is
+  **ignored entirely**. `TRUST_PROXY=1` (a local reverse proxy is in
+  front) → client IP = the rightmost `X-Forwarded-For` entry, which the
+  trusted proxy sets. Getting this wrong either breaks the allowlist
+  (all IPs look like `127.0.0.1`) or lets a client forge its IP — so it
+  is called out in the install runbook with a verification step.
+- **NFR-SEC-10** **Lab PCs must have stable IPs** — static assignment
+  or DHCP reservations by MAC. An allowlist over a churning DHCP pool is
+  meaningless. The runbook includes recording each lab PC's IP/MAC and
+  entering the range (or per-host IPs) into `lab_ip_allowlist`.
 
 ### 5.5 Reliability & Operations
 
@@ -439,7 +536,13 @@ sample faculty/department/course + a demo lecturer/student.
   done.
 - **NFR-TEST-4** A documented **manual UAT script** for exam day
   (start, autosave, kill client, resume elsewhere, submit, release,
-  lookup).
+  lookup) — **plus**: attempt entry from a non-allowlisted IP is
+  refused; access-code revoke blocks new entry but not an in-progress
+  attempt.
+- **NFR-TEST-5** Unit tests for `lib/security/clientIp.js`: IPv4 exact
+  match, CIDR match/non-match, `TRUST_PROXY=0` ignores `X-Forwarded-For`,
+  `TRUST_PROXY=1` reads the rightmost hop, empty allowlist + enforce =
+  deny. Repo tests for access-code resolution ignoring revoked codes.
 
 ---
 
@@ -455,24 +558,29 @@ Each slice ends with tests green and the app runnable.
    rewrite `lib/dal.js`, `middleware.js`, `lib/actions/auth.js`. Staff
    login/logout works end-to-end. Delete `lib/supabase/{server,client,
    middleware,admin}.js` usage for auth.
-3. **Slice 2 — Student credential-less auth.**
+3. **Slice 2 — Student credential-less auth + lab IP gate.**
    `lib/actions/studentAuth.js`, replace `mintStudentSession`, rate
-   limiting via repo. Exam entry + result lookup work.
+   limiting via repo. `lib/security/clientIp.js` + `lab_ip_allowlist`
+   repo + `TRUST_PROXY` handling. Exam entry (with IP check) + result
+   lookup work.
 4. **Slice 3 — Admin & structure.** `lib/actions/admin.js`,
    institution settings, faculties/departments/courses/users repos +
-   pages. Drop subdomain routing and `/[slug]/*` pages.
+   pages, **lab IP allowlist admin page**. Drop subdomain routing and
+   `/[slug]/*` pages.
 5. **Slice 4 — Question bank.** `lib/actions/questions.js` + pages.
+   Strip `ProctoringCamera` and any client anti-cheat code here or in
+   Slice 6 (whichever touches the exam UI first).
 6. **Slice 5 — Exams.** `lib/actions/exams.js` + lecturer exam pages,
-   exam_access, bulk import.
+   exam_access, bulk import, **access-code generate/revoke UI +
+   `enforce_ip_allowlist` toggle** (FR-EXAM-6..9).
 7. **Slice 6 — Attempts & results.** `lib/actions/attempts.js`,
-   grading, autosave debounce change, `/lab/*` flow, results pages,
-   xlsx export.
-8. **Slice 7 — Proctoring & anti-cheat.** Local-disk snapshot sink,
-   `attempt_events`, fullscreen/clipboard/blur enforcement.
-9. **Slice 8 — Ops & hardening.** Windows service, HTTPS proxy,
-   backup scripts, session-cleanup sweep, pre-exam checklist,
-   `.env.local.example`, load test, remove all remaining
-   `@supabase/*` deps and `lib/supabase/`.
+   grading, autosave debounce change, per-action IP re-check (FR-ATT-4),
+   `/lab/*` flow, results pages, xlsx export. Remove `ProctoringCamera`
+   mount and lockdown handlers from the exam interface.
+8. **Slice 7 — Ops & hardening.** Windows service, optional HTTPS proxy,
+   backup scripts, session-cleanup sweep, pre-exam checklist (incl. lab
+   IP/MAC capture), `.env.local.example`, load test, remove all
+   remaining `@supabase/*` deps and `lib/supabase/`.
 
 ---
 
@@ -483,7 +591,10 @@ Each slice ends with tests green and the app runnable.
 | RLS→code translation misses a policy → data leak | NFR-TEST-1: allow+deny test per policy; slice-by-slice review; keep the old `schema.sql` as the reference checklist. |
 | SQL Server multiple-cascade-path migration errors | Identify during Slice 0; convert offending cascades to `NoAction` + explicit repo cleanup, documented per table. |
 | Express 1 GB / 4-core cap insufficient under real load | NFR-PERF-6 load test on real hardware is a hard gate; escalate to Standard licence if it fails. |
-| `getUserMedia` blocked on plain-HTTP LAN → proctoring dead | NFR-SEC-4 HTTPS proxy; runtime flag disables proctoring cleanly if absent. |
+| Lab PC IPs change (DHCP churn) → students locked out mid-exam | NFR-SEC-10 static IPs / DHCP reservations; allowlist supports CIDR so a whole lab subnet can be entered once; pre-exam checklist verifies a sample lab PC can reach entry. |
+| `TRUST_PROXY` misconfigured → allowlist bypassable or everyone blocked | NFR-SEC-9 single explicit flag + runbook verification step (curl from a lab PC and a non-lab PC, confirm allow/deny). |
+| Student brings own laptop onto the LAN with an IP inside an allowed CIDR | Residual, accepted for v1. Mitigations: prefer per-host IPs over broad CIDR where feasible; invigilator physically controls the hall; access code is hand-distributed and revocable; v2 proctoring. |
+| Access code leaks to a student who is off-site | IP allowlist blocks entry from any non-lab machine; lecturer can revoke + reissue instantly (FR-EXAM-7); every blocked attempt is logged (FR-LAB-6). |
 | Server power loss mid-exam | NFR-HW-3 UPS; FR-ATT-2 15 s commit keeps loss ≤ 15 s. |
 | Clock skew between machines breaks timers | NFR-OPS-6 checklist verifies sync; timers are server-authoritative (FR-ATT-4) so client skew is cosmetic. |
 | GUID PK index fragmentation over years of use | Clustered index on `created_at` for hot tables; annual reindex in maintenance script. |
@@ -495,11 +606,16 @@ Each slice ends with tests green and the app runnable.
 
 1. Does the institution hold a **SQL Server Standard** licence, or must
    we target Express? (Affects NFR-PERF-6 pass criteria.)
-2. Is **HTTPS via Caddy/mkcert** acceptable operationally, or must we
-   ship plain HTTP + disabled proctoring for v1?
-3. Is camera proctoring actually wanted for the LAN deployment, or can
-   FR-PROCTOR-1 be deferred entirely?
-4. How many lab PCs / expected peak — is 200 the ceiling or a typical
+2. How many lab PCs / expected peak — is 200 the ceiling or a typical
    sitting?
-5. Confirm **`super_admin` → single admin** collapse is acceptable
+3. Confirm **`super_admin` → single admin** collapse is acceptable
    (roles retained in code, just no cross-tenant duties).
+4. **Lab network addressing**: will lab PCs get static IPs or DHCP
+   reservations, and is the lab on one dedicated subnet we can allowlist
+   as a single CIDR, or mixed with other traffic (needing per-host
+   entries)?
+5. Should the **access code auto-rotate** (e.g. new code each time an
+   exam goes `live`), or is it purely manual generate/revoke by the
+   lecturer? (Design currently assumes manual.)
+6. Plain HTTP for v1 confirmed acceptable (no proctoring driver), or is
+   HTTPS still wanted for defence-in-depth?
