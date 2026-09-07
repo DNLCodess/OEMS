@@ -779,7 +779,7 @@ describe('verifyExamAccess', () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
       exams: [{ data: { id: 'exam-1', university_id: 'uni-1', status: 'live', go_live_at: new Date().toISOString(), entry_window_minutes: 10 }, error: null }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -789,7 +789,7 @@ describe('verifyExamAccess', () => {
       verifyExamAccess(undefined, formData({ matric_number: 'CSC/2021/001', access_code: 'abc123' }))
     ).rejects.toThrow('REDIRECT')
 
-    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.oems.internal', 'exam_access', 'exam-1')
+    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.pcu-cbt.internal', 'exam_access', 'exam-1')
     expect(redirect).toHaveBeenCalledWith('/lab/ABC123')
     expect(adminClient.from).toHaveBeenCalledWith('admin_action_log')
   })
@@ -798,7 +798,7 @@ describe('verifyExamAccess', () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
       exams: [{ data: { id: 'exam-1', university_id: 'uni-1', status: 'live', go_live_at: new Date().toISOString(), entry_window_minutes: 10 }, error: null }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -830,7 +830,7 @@ describe('verifyExamAccess', () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
       exams: [{ data: { id: 'exam-1', university_id: 'uni-1', status: 'live', go_live_at: new Date().toISOString(), entry_window_minutes: 10 }, error: null }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -875,7 +875,7 @@ describe('verifyExamAccess', () => {
         },
         error: null,
       }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       attempts: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -894,7 +894,7 @@ describe('verifyExamAccess', () => {
         data: { id: 'exam-1', university_id: 'uni-1', status: 'live', go_live_at: null, entry_window_minutes: 10 },
         error: null,
       }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       attempts: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -936,7 +936,7 @@ describe('verifyExamAccess', () => {
         },
         error: null,
       }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
       attempts: [{ data: { id: 'attempt-1' }, error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
@@ -947,7 +947,7 @@ describe('verifyExamAccess', () => {
       verifyExamAccess(undefined, formData({ matric_number: 'CSC/2021/001', access_code: 'ABC123' }))
     ).rejects.toThrow('REDIRECT')
 
-    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.oems.internal', 'exam_access', 'exam-1')
+    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.pcu-cbt.internal', 'exam_access', 'exam-1')
     expect(redirect).toHaveBeenCalledWith('/lab/ABC123')
   })
 })
@@ -986,7 +986,7 @@ describe('verifyResultAccess', () => {
   it('mints a session and redirects to /check-result on exactly one match', async () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
-      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.oems.internal', is_active: true, university_id: 'uni-1' }], error: null }],
+      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.pcu-cbt.internal', is_active: true, university_id: 'uni-1' }], error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -996,7 +996,7 @@ describe('verifyResultAccess', () => {
       verifyResultAccess(undefined, formData({ matric_number: 'CSC/2021/001', date_of_birth: '2003-04-12' }))
     ).rejects.toThrow('REDIRECT')
 
-    expect(mintStudentSession).toHaveBeenCalledWith('a@uni-1.students.oems.internal', 'result_lookup')
+    expect(mintStudentSession).toHaveBeenCalledWith('a@uni-1.students.pcu-cbt.internal', 'result_lookup')
     expect(redirect).toHaveBeenCalledWith('/check-result')
     expect(adminClient.from).toHaveBeenCalledWith('admin_action_log')
   })
@@ -1004,7 +1004,7 @@ describe('verifyResultAccess', () => {
   it('clears the matric number attempt history on a successful verification', async () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
-      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.oems.internal', is_active: true, university_id: 'uni-1' }], error: null }],
+      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.pcu-cbt.internal', is_active: true, university_id: 'uni-1' }], error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -1128,7 +1128,7 @@ import { TopBar } from '@/components/shared/TopBar'
 import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-export const metadata = { title: 'Activity Log — OEMS' }
+export const metadata = { title: 'Activity Log — PCU CBT' }
 
 const ACTION_LABELS = {
   activated:    'Activated',
@@ -1245,7 +1245,7 @@ import { TopBar } from '@/components/shared/TopBar'
 import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-export const metadata = { title: 'Activity Log — OEMS' }
+export const metadata = { title: 'Activity Log — PCU CBT' }
 
 const ACTION_LABELS = {
   activated:    'Activated',

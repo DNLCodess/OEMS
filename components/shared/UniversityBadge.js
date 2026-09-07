@@ -3,7 +3,7 @@ import { Building2 } from 'lucide-react'
 // Shown above a form on a /{slug}/... page, identifying which institution
 // this branded page belongs to — same visual pattern as /lab/[code]'s
 // "Lab Session · Code: X" pill. Shown alongside, not instead of, the
-// generic OEMS brand mark the shared (auth) layout always renders — this is
+// generic PCU CBT brand mark the shared (auth) layout always renders — this is
 // tenant identity, not platform identity.
 export function UniversityBadge({ university }) {
   return (

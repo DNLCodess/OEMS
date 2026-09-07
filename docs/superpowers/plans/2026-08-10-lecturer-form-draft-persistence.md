@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - No new npm dependencies — this repo has no `jsdom`/`@testing-library/react`, so the React hook itself is verified manually in-browser, not unit-tested; only the extracted pure storage/debounce logic gets vitest coverage (Node-environment-safe).
-- Storage key format: `oems:draft:<lecturerId>:<question|exam>:<entityId|'new'>`.
+- Storage key format: `pcu-cbt:draft:<lecturerId>:<question|exam>:<entityId|'new'>`.
 - Debounce delay for autosave writes: 500ms (constant, not configurable).
 - No draft expiry — persists until explicit submit-success or manual "Discard draft".
 - Draft restore merges over current form defaults (`{ ...getValues(), ...draft }`) rather than a raw `reset(draft)`, so a field missing from an older/corrupted draft never leaves a form field `undefined`.
@@ -365,7 +365,7 @@ export function QuestionForm({ question, courses, lecturerId }) {
 Immediately after that destructure block, add:
 
 ```js
-  const draftKey = `oems:draft:${lecturerId}:question:${question?.id ?? 'new'}`
+  const draftKey = `pcu-cbt:draft:${lecturerId}:question:${question?.id ?? 'new'}`
   const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
 ```
 
@@ -527,7 +527,7 @@ export function ExamSettingsForm({ courses, exam = null, lecturerId }) {
 Immediately after the `useFieldArray` call (currently lines 63–66), add:
 
 ```js
-  const draftKey = `oems:draft:${lecturerId}:exam:${exam?.id ?? 'new'}`
+  const draftKey = `pcu-cbt:draft:${lecturerId}:exam:${exam?.id ?? 'new'}`
   const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
 
   function handleDiscardDraft() {

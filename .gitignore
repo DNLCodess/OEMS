@@ -47,11 +47,11 @@ CLAUDE.md
 AGENTS.md
 .claude/
 memory/
-oems_prd.md
+pcu-cbt_prd.md
 .mcp.json
 docs/PROJECT_WALKTHROUGH.md
 docs/WRITEUP_UPDATES_NEEDED.md
-
+docs/screenshots
 # supabase CLI local link/cache — machine-specific, not project state
 supabase/.temp/
 

@@ -7,7 +7,7 @@ import { SignInLinkCard } from '@/components/admin/SignInLinkCard'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import {
   Users, ClipboardList, BookOpen, GraduationCap, ArrowRight,
-  TrendingUp, AlertTriangle, CheckCircle2, Clock, Building2,
+  AlertTriangle, Building2,
 } from 'lucide-react'
 
 export const metadata = { title: 'Dashboard' }

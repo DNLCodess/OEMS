@@ -8,7 +8,7 @@ import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { ClipboardList } from 'lucide-react'
 import { EXAM_TYPE_LABELS } from '@/lib/utils'
 
-export const metadata = { title: 'Exam Oversight — OEMS' }
+export const metadata = { title: 'Exam Oversight — PCU CBT' }
 
 export default async function AdminExamsPage() {
   const user     = await requireRole('school_admin')

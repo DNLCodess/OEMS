@@ -6,7 +6,7 @@ import { UniversityRow } from './UniversityRow'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Building2 } from 'lucide-react'
 
-export const metadata = { title: 'Universities — OEMS' }
+export const metadata = { title: 'Universities — PCU CBT' }
 
 export default async function SuperAdminUniversitiesPage() {
   await requireRole('super_admin')

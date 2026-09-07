@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - No new npm dependencies.
-- Storage key: `oems:exam:${attemptId}` — already unique per (exam, student), no further scoping needed.
+- Storage key: `pcu-cbt:exam:${attemptId}` — already unique per (exam, student), no further scoping needed.
 - `timeRemaining` is never read from or written into the localStorage draft — always computed fresh from `startedAt` + `duration_minutes`, exactly as today. This is a hard constraint: the exam-timing design's server-side enforcement assumes the client countdown is untrusted decoration, and letting a stored value seed it would reintroduce a client-trust gap.
 - No draft expiry — cleared only on confirmed `submitExam` success, matching the lecturer-forms precedent.
 - No change to server-side timing/integrity enforcement, proctoring, fullscreen handling, or violation tracking.
@@ -73,7 +73,7 @@ describe('buildAttemptState', () => {
   })
 
   it('merges local draft answers over server-confirmed ones, local winning on conflict', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({
       answers: { q1: 'B', q3: 'C' },
       currentIndex: 1,
       flagged: ['q2'],
@@ -87,7 +87,7 @@ describe('buildAttemptState', () => {
   })
 
   it('always computes timeRemaining from startedAt/duration, ignoring anything in the local draft', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({
       answers: {},
       currentIndex: 0,
       flagged: [],
@@ -109,7 +109,7 @@ describe('buildAttemptState', () => {
   })
 
   it('keys the draft lookup by attemptId, so a different attempt never sees this draft', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({ answers: { q1: 'B' }, currentIndex: 1, flagged: [] }))
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({ answers: { q1: 'B' }, currentIndex: 1, flagged: [] }))
 
     const state = buildAttemptState('attempt-2', responses, startedAt, 60)
 
@@ -118,7 +118,7 @@ describe('buildAttemptState', () => {
   })
 
   it('falls back cleanly when the stored draft is corrupted JSON', () => {
-    storage.setItem('oems:exam:attempt-1', '{not valid json')
+    storage.setItem('pcu-cbt:exam:attempt-1', '{not valid json')
 
     const state = buildAttemptState('attempt-1', responses, startedAt, 60)
 
@@ -166,7 +166,7 @@ export function buildAttemptState(attemptId, responses, startedAt, durationMinut
     serverAnswers[r.question_id] = r.student_answer
   }
 
-  const draft = readDraft(`oems:exam:${attemptId}`)
+  const draft = readDraft(`pcu-cbt:exam:${attemptId}`)
 
   const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
 
@@ -260,7 +260,7 @@ function reducer(state, action) {
 
 export function ExamInterface({ exam, questions, attemptId, studentId, startedAt, responses, labMode = false, labCode }) {
   const router = useRouter()
-  const draftKey = `oems:exam:${attemptId}`
+  const draftKey = `pcu-cbt:exam:${attemptId}`
 
   const [state, dispatch] = useReducer(
     reducer,
@@ -900,7 +900,7 @@ With devtools still able to toggle offline: go offline, click "Submit Exam" (con
 
 - [ ] **Step 5: Verify the draft is cleared after a successful submit**
 
-After Step 4's successful submit, open devtools → Application/Storage → Local Storage, and confirm the `oems:exam:<attemptId>` key for that attempt is gone.
+After Step 4's successful submit, open devtools → Application/Storage → Local Storage, and confirm the `pcu-cbt:exam:<attemptId>` key for that attempt is gone.
 
 - [ ] **Step 6: Report results**
 

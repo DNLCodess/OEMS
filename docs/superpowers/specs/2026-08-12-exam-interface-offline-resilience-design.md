@@ -22,7 +22,7 @@ A student who loses network briefly, or whose page reloads mid-exam, does not lo
 
 Reuses `lib/hooks/formDraftStorage.js`'s pure functions (`readDraft`/`writeDraft`/`clearDraft`) directly — not the `useFormDraft` React hook, which is shaped around react-hook-form's `watch`/`reset`/`getValues` and doesn't fit this component's `useReducer` state. No new dependency.
 
-- **Key:** `oems:exam:${attemptId}`. An attempt ID is already unique per (exam, student) — no additional scoping needed, unlike the lecturer forms which had to key by lecturer ID to avoid cross-user collision on a shared machine.
+- **Key:** `pcu-cbt:exam:${attemptId}`. An attempt ID is already unique per (exam, student) — no additional scoping needed, unlike the lecturer forms which had to key by lecturer ID to avoid cross-user collision on a shared machine.
 - **Persisted shape:** `{ answers, currentIndex, flagged: [...state.flagged] }` (a plain array — `Set` isn't JSON-serializable).
 - **Write timing:** a `useEffect` watching `state` calls `writeDraft` on every change — not debounced. Local writes are cheap (small JSON blob, synchronous localStorage call); the debounce on the *server* save exists to limit network calls, which doesn't apply here. The whole point of this layer is zero-latency durability.
 - **Restore on mount:** `buildInitialState` reads the local draft for this `attemptId`. `answers` merges as `{ ...serverAnswers, ...localDraft.answers }` — local wins, since it may hold edits newer than the last server-confirmed state. `currentIndex`/`flagged` restore directly from the local draft (no server equivalent to merge against). If no local draft exists (first load, or a different device), behavior is unchanged from today.

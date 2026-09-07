@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm, Controller, useFieldArray } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { Eye, X } from 'lucide-react'
+import { Eye } from 'lucide-react'
 
 import { questionSchema } from '@/lib/validations/questions'
 import { createQuestion, updateQuestion } from '@/lib/actions/questions'
@@ -77,7 +77,7 @@ export function QuestionForm({ question, courses, lecturerId }) {
     defaultValues: buildDefaults(question),
   })
 
-  const draftKey = `oems:draft:${lecturerId}:question:${question?.id ?? 'new'}`
+  const draftKey = `pcu-cbt:draft:${lecturerId}:question:${question?.id ?? 'new'}`
   const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
 
   const watchedType = watch('type')

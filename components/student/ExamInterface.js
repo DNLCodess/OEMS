@@ -43,7 +43,7 @@ function reducer(state, action) {
 
 export function ExamInterface({ exam, questions, attemptId, studentId, startedAt, responses, labMode = false, labCode }) {
   const router = useRouter()
-  const draftKey = `oems:exam:${attemptId}`
+  const draftKey = `pcu-cbt:exam:${attemptId}`
 
   const [state, dispatch] = useReducer(
     reducer,
@@ -63,6 +63,7 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
 
   const autoSubmitted  = useRef(false)
   const submittingRef  = useRef(false)
+  const visibilityHandledRef = useRef(false)
   const saveTimers     = useRef({})
   const answersRef     = useRef(state.answers)
   useEffect(() => { answersRef.current = state.answers }, [state.answers])
@@ -123,14 +124,42 @@ export function ExamInterface({ exam, questions, attemptId, studentId, startedAt
   }, []) // eslint-disable-line
 
   // ── Tab / window visibility ─────────────────────────────────────────────────
+  // Two independent signals, deliberately combined: the Page Visibility API
+  // is the primary signal, but it doesn't fire reliably in every browser for
+  // every way of switching away (e.g. some Alt+Tab / multi-monitor cases in
+  // older Safari/Firefox builds don't hide the document). `window`'s blur
+  // event is a fallback that catches those — guarded so a switch that fires
+  // both doesn't count as two violations.
   useEffect(() => {
+    function markHandled() {
+      visibilityHandledRef.current = true
+      setTimeout(() => { visibilityHandledRef.current = false }, 500)
+    }
+
     function onVisibilityChange() {
       if (document.hidden && !autoSubmitted.current && !submittingRef.current) {
+        markHandled()
         triggerViolation('You switched away from the exam window. This has been recorded.')
       }
     }
+
+    function onWindowBlur() {
+      if (
+        document.hidden ||
+        visibilityHandledRef.current ||
+        autoSubmitted.current ||
+        submittingRef.current
+      ) return
+      markHandled()
+      triggerViolation('You switched away from the exam window. This has been recorded.')
+    }
+
     document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('blur', onWindowBlur)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('blur', onWindowBlur)
+    }
   }, []) // eslint-disable-line
 
   function triggerViolation(message) {

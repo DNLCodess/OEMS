@@ -3,7 +3,7 @@
 import { LabCodeEntry } from './LabCodeEntry'
 import { BrandedPageBackground } from '@/components/shared/BrandedPageBackground'
 
-export const metadata = { title: 'Enter Exam — OEMS' }
+export const metadata = { title: 'Enter Exam — PCU CBT' }
 
 export default function LabEntryPage() {
   return (
@@ -15,7 +15,7 @@ export default function LabEntryPage() {
             <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-primary text-white text-2xl font-bold mb-4">
               O
             </div>
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight">OEMS Exam</h1>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">PCU CBT Exam</h1>
             <p className="text-sm text-text-muted mt-1">
               Enter your matric number and the exam access code
             </p>

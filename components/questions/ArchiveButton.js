@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Archive, AlertTriangle, X } from 'lucide-react'
+import { Archive, AlertTriangle } from 'lucide-react'
 import { archiveQuestion } from '@/lib/actions/questions'
 import { toast } from 'sonner'
 

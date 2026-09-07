@@ -6,7 +6,7 @@ import { ResultsTable } from '@/components/lecturer/ResultsTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { Badge } from '@/components/ui/Badge'
-import { Users, TrendingUp, TrendingDown, Award, AlertTriangle } from 'lucide-react'
+import { Users, Award, AlertTriangle } from 'lucide-react'
 
 export const metadata = { title: 'Exam Results' }
 

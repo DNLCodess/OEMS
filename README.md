@@ -1,4 +1,4 @@
-# OEMS — Online Examination Management System
+# PCU CBT — Precious Cornerstone University Computer-Based Testing Platform
 
 A full-stack Computer-Based Test (CBT) platform built for Precious Cornerstone University (PCU), Ibadan. Covers the complete exam lifecycle from question authoring to result publication, with role-scoped access for every stakeholder.
 
@@ -37,8 +37,8 @@ A full-stack Computer-Based Test (CBT) platform built for Precious Cornerstone U
 ### Setup
 
 ```bash
-git clone https://github.com/DNLCodess/OEMS.git
-cd OEMS
+git clone https://github.com/DNLCodess/pcu-cbt.git
+cd pcu-cbt
 npm install
 cp .env.local.example .env.local
 ```

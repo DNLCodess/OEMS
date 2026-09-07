@@ -7,7 +7,7 @@ Last of four changes from tonight's system review. The other three (exam access 
 Two things the project owner reasoned through tonight, now confirmed:
 
 1. **The manual result-release gate is unnecessary complexity.** It exists to protect against a student seeing a score before a lecturer finishes manually grading essay/short-answer questions. But this university will never administer essay/theory questions via CBT — those stay physical, paper exams. Every question type left in the system (`mcq`, `multi_select`, `true_false`, `fill_blank`) auto-grades instantly on submission, so there's never a "waiting on the lecturer" state to protect against.
-2. **OEMS's job ends at producing a result, not managing it long-term.** The university has its own portal/ERP for aggregating results, payments, and registration. OEMS needs to hand off a clean, exportable result set — not host its own release-approval workflow.
+2. **PCU CBT's job ends at producing a result, not managing it long-term.** The university has its own portal/ERP for aggregating results, payments, and registration. PCU CBT needs to hand off a clean, exportable result set — not host its own release-approval workflow.
 
 ## What ships
 

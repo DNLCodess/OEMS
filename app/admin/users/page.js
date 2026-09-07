@@ -7,7 +7,7 @@ import { InviteUserModal } from './InviteUserModal'
 import { BulkUploadStudentsModal } from './BulkUploadStudentsModal'
 import { ToggleActiveButton } from './ToggleActiveButton'
 
-export const metadata = { title: 'Users — OEMS' }
+export const metadata = { title: 'Users — PCU CBT' }
 
 const ROLE_LABELS = {
   school_admin: 'Exam Officer',
@@ -108,7 +108,14 @@ export default async function AdminUsersPage() {
                     {roleUsers.map(u => (
                       <tr key={u.id} className={u.is_active ? '' : 'opacity-60'}>
                         <td className="px-4 py-3 font-medium text-text-primary">{u.full_name}</td>
-                        <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">{u.email}</td>
+                        <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">
+                          {/* Students never sign in by email — their address is an internal
+                              placeholder (exposing the university's raw id), not a real contact,
+                              so show that plainly instead of the synthetic address. */}
+                          {role === 'student'
+                            ? <span className="text-text-muted italic">No email (matric login)</span>
+                            : u.email}
+                        </td>
                         {role === 'student' && (
                           <td className="px-4 py-3 hidden md:table-cell">
                             <span className="font-mono text-xs text-text-secondary">{u.matric_number}</span>

@@ -5,7 +5,7 @@ import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { CreateFacultyForm, CreateDepartmentForm } from './StructureForms'
 import { Building2, ChevronRight } from 'lucide-react'
 
-export const metadata = { title: 'Faculties & Departments — OEMS' }
+export const metadata = { title: 'Faculties & Departments — PCU CBT' }
 
 export default async function AdminStructurePage() {
   const user     = await requireRole('school_admin')

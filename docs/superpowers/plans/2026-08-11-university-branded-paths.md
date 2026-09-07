@@ -359,7 +359,7 @@ Add to `lib/actions/studentAuth.test.js`, inside the existing `describe('verifyR
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }, { data: null, error: null }],
       universities: [{ data: { id: 'uni-1' }, error: null }],
-      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.oems.internal', is_active: true, university_id: 'uni-1' }], error: null }],
+      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.pcu-cbt.internal', is_active: true, university_id: 'uni-1' }], error: null }],
       admin_action_log: [{ data: null, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
@@ -535,7 +535,7 @@ import { Building2 } from 'lucide-react'
 // Shown above a form on a /{slug}/... page, identifying which institution
 // this branded page belongs to — same visual pattern as /lab/[code]'s
 // "Lab Session · Code: X" pill. Shown alongside, not instead of, the
-// generic OEMS brand mark the shared (auth) layout always renders — this is
+// generic PCU CBT brand mark the shared (auth) layout always renders — this is
 // tenant identity, not platform identity.
 export function UniversityBadge({ university }) {
   return (
@@ -937,7 +937,7 @@ import { ResultsList } from '@/components/student/ResultsList'
 import { UniversityBadge } from '@/components/shared/UniversityBadge'
 import { getUniversityThemeStyle } from '@/lib/universityTheme'
 
-export const metadata = { title: 'Check Result — OEMS' }
+export const metadata = { title: 'Check Result — PCU CBT' }
 
 export default async function UniversityCheckResultPage({ params }) {
   const { slug } = await params
@@ -1297,7 +1297,7 @@ function UserFooter({ user }) {
       <div className="px-3 py-2 mb-1">
         <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
         {/* Students authenticate credential-less; their email is a synthetic
-            internal address (<matric>@<uni-id>.students.oems.internal) that
+            internal address (<matric>@<uni-id>.students.pcu-cbt.internal) that
             is implementation plumbing and must never be shown to them. */}
         {user.role !== 'student' && (
           <p className="text-xs text-white/55 truncate">{user.email}</p>
@@ -1344,7 +1344,7 @@ export function Sidebar({ user, logoUrl }) {
               <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">OEMS</p>
+              <p className="text-sm font-bold text-white leading-tight">PCU CBT</p>
               <p className="text-xs text-white/60 leading-tight">{roleLabel}</p>
             </div>
           </div>
@@ -1359,7 +1359,7 @@ export function Sidebar({ user, logoUrl }) {
           <span className="flex size-7 items-center justify-center rounded-lg bg-white/15">
             <BrandIcon logoUrl={logoUrl} size={7} />
           </span>
-          <span className="text-sm font-bold text-white">OEMS</span>
+          <span className="text-sm font-bold text-white">PCU CBT</span>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -1394,7 +1394,7 @@ export function Sidebar({ user, logoUrl }) {
               <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">OEMS</p>
+              <p className="text-sm font-bold text-white leading-tight">PCU CBT</p>
               <p className="text-xs text-white/60 leading-tight">{roleLabel}</p>
             </div>
           </div>
@@ -1768,7 +1768,7 @@ export function UniversityRow({ university, counts }) {
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">{university.name}</p>
-            <p className="text-xs font-mono text-text-muted">{university.subdomain}.oems.edu</p>
+            <p className="text-xs font-mono text-text-muted">{university.subdomain}.pcu-cbt.edu</p>
           </div>
         </div>
         <div className="flex items-center gap-6 text-center shrink-0">
@@ -1836,7 +1836,7 @@ import { CreateUniversityForm } from './CreateUniversityForm'
 import { UniversityRow } from './UniversityRow'
 import { Building2 } from 'lucide-react'
 
-export const metadata = { title: 'Universities — OEMS' }
+export const metadata = { title: 'Universities — PCU CBT' }
 
 export default async function SuperAdminUniversitiesPage() {
   await requireRole('super_admin')

@@ -99,7 +99,7 @@ In `lib/supabase/studentSession.test.js`, add a new test inside the `describe('m
     serverClient.auth.verifyOtp.mockResolvedValue({ data: {}, error: null })
     createClient.mockResolvedValue(serverClient)
 
-    await mintStudentSession('matric-1@uni-1.students.oems.internal', 'exam_access', 'exam-1')
+    await mintStudentSession('matric-1@uni-1.students.pcu-cbt.internal', 'exam_access', 'exam-1')
 
     expect(adminClient.auth.admin.updateUserById).toHaveBeenCalledWith('user-1', {
       app_metadata: { session_channel: 'exam_access', verified_exam_id: 'exam-1' },
@@ -114,7 +114,7 @@ In `lib/supabase/studentSession.test.js`, add a new test inside the `describe('m
     serverClient.auth.verifyOtp.mockResolvedValue({ data: {}, error: null })
     createClient.mockResolvedValue(serverClient)
 
-    await mintStudentSession('matric-1@uni-1.students.oems.internal', 'result_lookup')
+    await mintStudentSession('matric-1@uni-1.students.pcu-cbt.internal', 'result_lookup')
 
     expect(adminClient.auth.admin.updateUserById).toHaveBeenCalledWith('user-1', {
       app_metadata: { session_channel: 'result_lookup' },

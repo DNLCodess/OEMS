@@ -545,7 +545,7 @@ import { Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SuperAdminUserActions } from './SuperAdminUserActions'
 
-export const metadata = { title: 'All Users — OEMS' }
+export const metadata = { title: 'All Users — PCU CBT' }
 
 const ROLE_LABELS = {
   super_admin:  'Platform Admin',
@@ -677,7 +677,7 @@ import { TopBar } from '@/components/shared/TopBar'
 import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-export const metadata = { title: 'Activity Log — OEMS' }
+export const metadata = { title: 'Activity Log — PCU CBT' }
 
 const ACTION_LABELS = {
   activated:   'Activated',
@@ -763,7 +763,7 @@ import { TopBar } from '@/components/shared/TopBar'
 import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-export const metadata = { title: 'Activity Log — OEMS' }
+export const metadata = { title: 'Activity Log — PCU CBT' }
 
 const ACTION_LABELS = {
   activated:   'Activated',

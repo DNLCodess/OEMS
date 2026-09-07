@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up Vitest as OEMS's test runner and write a first round of regression tests for the riskiest, hardest-to-eyeball-verify logic: Zod validation schemas, the central auth guard (`lib/dal.js`), and the two highest-risk server actions (`lib/actions/auth.js`, `lib/actions/admin.js`'s `inviteUser`).
+**Goal:** Stand up Vitest as PCU CBT's test runner and write a first round of regression tests for the riskiest, hardest-to-eyeball-verify logic: Zod validation schemas, the central auth guard (`lib/dal.js`), and the two highest-risk server actions (`lib/actions/auth.js`, `lib/actions/admin.js`'s `inviteUser`).
 
 **Architecture:** Vitest (Node environment, no DOM) with a shared chainable Supabase mock (`tests/helpers/supabaseMock.js`) that server-action tests configure per table/call instead of hitting a real database. Tests are colocated next to source as `*.test.js`.
 

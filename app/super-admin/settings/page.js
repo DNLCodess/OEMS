@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/dal'
 import { TopBar } from '@/components/shared/TopBar'
 import { Settings, Globe, Shield, Mail } from 'lucide-react'
 
-export const metadata = { title: 'Platform Settings — OEMS' }
+export const metadata = { title: 'Platform Settings — PCU CBT' }
 
 function SettingRow({ icon: Icon, label, value, mono = false }) {
   return (

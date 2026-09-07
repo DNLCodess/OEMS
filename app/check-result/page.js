@@ -4,7 +4,7 @@ import { CheckResultForm } from './CheckResultForm'
 import { CheckAnotherResultButton } from './CheckAnotherResultButton'
 import { ResultsList } from '@/components/student/ResultsList'
 
-export const metadata = { title: 'Check Result — OEMS' }
+export const metadata = { title: 'Check Result — PCU CBT' }
 
 export default async function CheckResultPage() {
   const supabase = await createClient()

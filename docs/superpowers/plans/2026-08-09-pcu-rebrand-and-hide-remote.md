@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebrand OEMS to Precious Cornerstone University's visual identity and hide the multi-tenant framing, and hide the remote exam-delivery option so lecturers can only create lab-based exams.
+**Goal:** Rebrand PCU CBT to Precious Cornerstone University's visual identity and hide the multi-tenant framing, and hide the remote exam-delivery option so lecturers can only create lab-based exams.
 
 **Architecture:** Both are pure UI/config surface changes — theme tokens, fonts, copy, and one nav entry for the rebrand; a Zod default and a form section removal for hiding remote mode. No schema, server action, or business-logic changes in either task.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Rebrand touches only theme tokens, fonts, copy, and the super-admin nav — the `universities` route and schema stay fully intact, this is a visibility change, not a removal. (spec: §1)
-- Product name stays "OEMS" — do not rename it. (spec: §1)
+- Product name stays "PCU CBT" — do not rename it. (spec: §1)
 - Hiding remote mode touches only the Zod default and the settings form UI — the `exam_mode` column, the `'remote'` enum value, and any code that already treats both modes identically stay untouched. (spec: §2)
 - No new automated tests for either task — both are pure UI/config, verified via `npx next build` plus a manual look, matching how the UI-only task earlier in this session was verified. (spec: Testing)
 
@@ -131,8 +131,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    template: '%s — OEMS',
-    default: 'OEMS — Precious Cornerstone University CBT Platform',
+    template: '%s — PCU CBT',
+    default: 'PCU CBT — Precious Cornerstone University CBT Platform',
   },
   description: 'Computer-Based Test platform built for Precious Cornerstone University.',
 }
@@ -162,7 +162,7 @@ export default function RootLayout({ children }) {
 In `README.md`, change lines 1-5 from:
 
 ```markdown
-# OEMS — Online Examination Management System
+# PCU CBT — Precious Cornerstone University CBT Platform
 
 A full-stack, multi-tenant Computer-Based Test (CBT) platform built for Nigerian universities. Covers the complete exam lifecycle from question authoring to result publication, with role-scoped access for every stakeholder.
 
@@ -172,7 +172,7 @@ A full-stack, multi-tenant Computer-Based Test (CBT) platform built for Nigerian
 to:
 
 ```markdown
-# OEMS — Online Examination Management System
+# PCU CBT — Precious Cornerstone University CBT Platform
 
 A full-stack Computer-Based Test (CBT) platform built for Precious Cornerstone University (PCU), Ibadan. Covers the complete exam lifecycle from question authoring to result publication, with role-scoped access for every stakeholder.
 
@@ -373,7 +373,7 @@ Replace the entire `{/* ── Delivery mode ── */}` section (currently the 
           <div className="flex items-start gap-2 bg-primary-light border border-primary/20 rounded-lg px-3 py-2.5">
             <Info size={13} className="text-primary shrink-0 mt-0.5" />
             <p className="text-xs text-primary/80">
-              After saving, go to the exam detail page to generate a <strong>lab code</strong>. Display the URL <code className="bg-primary/10 px-1 rounded">oems.edu.ng/lab/[CODE]</code> on a projector or enter it on each lab machine. Students see only the exam interface — no sidebar, no navigation.
+              After saving, go to the exam detail page to generate a <strong>lab code</strong>. Display the URL <code className="bg-primary/10 px-1 rounded">pcu-cbt.edu.ng/lab/[CODE]</code> on a projector or enter it on each lab machine. Students see only the exam interface — no sidebar, no navigation.
             </p>
           </div>
         )}

@@ -15,7 +15,7 @@ function format(seconds) {
 }
 
 export function ExamTimer({ timeRemaining }) {
-  const isLow    = timeRemaining <= 180  // under 3 min
+  const isLow    = timeRemaining <= 120  // under 2 min
   const isWarning = timeRemaining <= 600  // under 10 min
 
   const colorClass = isLow

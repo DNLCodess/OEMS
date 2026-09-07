@@ -5,7 +5,7 @@ import { CreateCourseForm } from './CreateCourseForm'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { BookOpen } from 'lucide-react'
 
-export const metadata = { title: 'Courses — OEMS' }
+export const metadata = { title: 'Courses — PCU CBT' }
 
 const LEVEL_LABELS = { '100': '100L', '200': '200L', '300': '300L', '400': '400L', '500': '500L', PG: 'PG' }
 

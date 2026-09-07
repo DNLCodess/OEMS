@@ -24,8 +24,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    template: '%s — OEMS',
-    default: 'OEMS — Precious Cornerstone University CBT Platform',
+    template: '%s — PCU CBT',
+    default: 'PCU CBT — Precious Cornerstone University',
   },
   description: 'Computer-Based Test platform built for Precious Cornerstone University.',
 }

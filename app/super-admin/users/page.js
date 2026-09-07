@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { SuperAdminUserActions } from './SuperAdminUserActions'
 
-export const metadata = { title: 'All Users — OEMS' }
+export const metadata = { title: 'All Users — PCU CBT' }
 
 const ROLE_LABELS = {
   super_admin:  'Platform Admin',
@@ -67,7 +67,13 @@ export default async function SuperAdminUsersPage() {
                         <span className="block font-mono text-xs text-text-muted">{u.matric_number}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">{u.email}</td>
+                    <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">
+                      {/* Students never sign in by email — their address is an internal
+                          placeholder (exposing the university's raw id), not a real contact. */}
+                      {u.role === 'student'
+                        ? <span className="text-text-muted italic">No email (matric login)</span>
+                        : u.email}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${ROLE_COLORS[u.role] ?? 'bg-slate-100 text-slate-600'}`}>
                         {ROLE_LABELS[u.role] ?? u.role}

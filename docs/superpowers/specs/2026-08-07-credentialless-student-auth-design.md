@@ -59,7 +59,7 @@ which is the actual hard-won part of this system and out of scope to redo.
 
 - At roster upload, an `auth.users` row is created per student via the
   admin/service-role client (`email_confirm: true`), using a synthetic
-  internal email (`<matric_number>@<university-subdomain>.oems.internal`)
+  internal email (`<matric_number>@<university-subdomain>.pcu-cbt.internal`)
   the student never sees or uses. No password is set in any meaningful
   sense — Supabase's create-user call may require *a* value internally, but
   it is generated, never stored, never surfaced, and never used to sign in.

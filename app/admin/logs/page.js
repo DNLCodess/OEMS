@@ -5,7 +5,7 @@ import { History } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 
-export const metadata = { title: 'Activity Log — OEMS' }
+export const metadata = { title: 'Activity Log — PCU CBT' }
 
 const ACTION_LABELS = {
   activated:    'Activated',

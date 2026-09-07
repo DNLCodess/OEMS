@@ -962,7 +962,7 @@ import { LabStartButton } from './LabStartButton'
 import { EndSessionButton } from './EndSessionButton'
 import { Clock, BookOpen, FileText, Monitor } from 'lucide-react'
 
-export const metadata = { title: 'Exam — OEMS Lab' }
+export const metadata = { title: 'Exam — PCU CBT Lab' }
 
 export default async function LabLobbyPage({ params }) {
   const { code } = await params

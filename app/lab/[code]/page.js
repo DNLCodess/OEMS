@@ -8,7 +8,7 @@ import { EndSessionButton } from './EndSessionButton'
 import { Clock, BookOpen, FileText, Monitor } from 'lucide-react'
 import { BrandedPageBackground } from '@/components/shared/BrandedPageBackground'
 
-export const metadata = { title: 'Exam — OEMS Lab' }
+export const metadata = { title: 'Exam — PCU CBT Lab' }
 
 export default async function LabLobbyPage({ params }) {
   const { code } = await params
@@ -127,7 +127,14 @@ export default async function LabLobbyPage({ params }) {
     redirect(`/lab/${upperCode}/attempt/${attempt.id}`)
   }
 
-  const { data: examQuestions, error: examQuestionsError } = await supabase
+  // RLS on exam_questions only grants students SELECT once they have an
+  // in_progress attempt (so they can't browse question content before
+  // starting) — but this lobby preview count runs before that attempt
+  // exists. isAuthedForThisExam + the live-status check above already prove
+  // this student may see this exam, so the admin client is safe here, the
+  // same way it's used for the pre-auth existence check at the top of this
+  // page.
+  const { data: examQuestions, error: examQuestionsError } = await adminClient
     .from('exam_questions')
     .select('marks')
     .eq('exam_id', exam.id)

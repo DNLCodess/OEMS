@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
-import { Building2, Users, ShieldCheck, ArrowRight, BookOpen, ClipboardList, TrendingUp, GraduationCap } from 'lucide-react'
+import { Building2, Users, ShieldCheck, ArrowRight, ClipboardList, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { format } from 'date-fns'
@@ -146,7 +146,7 @@ export default async function SuperAdminDashboardPage() {
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="min-w-0">
                     <p className="font-semibold text-text-primary">{uni.name}</p>
-                    <p className="font-mono text-xs text-text-muted mt-0.5">{uni.subdomain}.oems.edu.ng</p>
+                    <p className="font-mono text-xs text-text-muted mt-0.5">{uni.subdomain}.pcu-cbt.edu.ng</p>
                   </div>
                   <div className="shrink-0 text-xs text-text-muted">
                     Since {format(new Date(uni.created_at), 'MMM yyyy')}

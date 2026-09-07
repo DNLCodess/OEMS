@@ -490,11 +490,11 @@ describe('mintStudentSession', () => {
     serverClient.auth.verifyOtp.mockResolvedValue({ data: {}, error: null })
     createClient.mockResolvedValue(serverClient)
 
-    const result = await mintStudentSession('matric-1@uni-1.students.oems.internal')
+    const result = await mintStudentSession('matric-1@uni-1.students.pcu-cbt.internal')
 
     expect(adminClient.auth.admin.generateLink).toHaveBeenCalledWith({
       type: 'magiclink',
-      email: 'matric-1@uni-1.students.oems.internal',
+      email: 'matric-1@uni-1.students.pcu-cbt.internal',
     })
     // signOut must run before verifyOtp — prevents session bleed on shared/kiosk machines.
     expect(serverClient.auth.signOut.mock.invocationCallOrder[0])
@@ -665,7 +665,7 @@ describe('bulkUploadStudents', () => {
     expect(adminClient.auth.admin.createUser).toHaveBeenCalledTimes(1)
     const call = adminClient.auth.admin.createUser.mock.calls[0][0]
     expect(call.password).toBeUndefined()
-    expect(call.email).toBe('csc2021001@uni-1.students.oems.internal')
+    expect(call.email).toBe('csc2021001@uni-1.students.pcu-cbt.internal')
     expect(call.user_metadata).toEqual({
       full_name: 'Amina Bello',
       role: 'student',
@@ -820,7 +820,7 @@ export async function bulkUploadStudents(prevState, formData) {
 
     const { matric_number, full_name, level, date_of_birth } = parsed.data
     const localPart = matric_number.toLowerCase().replace(/[^a-z0-9]/g, '')
-    const email = `${localPart}@${user.university_id}.students.oems.internal`
+    const email = `${localPart}@${user.university_id}.students.pcu-cbt.internal`
 
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
@@ -1109,7 +1109,7 @@ describe('verifyExamAccess', () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }],
       exams: [{ data: { id: 'exam-1', university_id: 'uni-1', status: 'live' }, error: null }],
-      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.oems.internal', is_active: true }, error: null }],
+      users: [{ data: { id: 'stu-1', email: 'csc2021001@uni-1.students.pcu-cbt.internal', is_active: true }, error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
     mintStudentSession.mockResolvedValue({ ok: true })
@@ -1118,7 +1118,7 @@ describe('verifyExamAccess', () => {
       verifyExamAccess(undefined, formData({ matric_number: 'CSC/2021/001', access_code: 'abc123' }))
     ).rejects.toThrow('REDIRECT')
 
-    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.oems.internal')
+    expect(mintStudentSession).toHaveBeenCalledWith('csc2021001@uni-1.students.pcu-cbt.internal')
     expect(redirect).toHaveBeenCalledWith('/lab/ABC123')
   })
 
@@ -1166,7 +1166,7 @@ describe('verifyResultAccess', () => {
   it('mints a session and redirects to /student/results on exactly one match', async () => {
     const adminClient = createMockSupabaseClient({
       verification_attempts: [{ data: null, error: null, count: 0 }],
-      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.oems.internal', is_active: true }], error: null }],
+      users: [{ data: [{ id: 'a', email: 'a@uni-1.students.pcu-cbt.internal', is_active: true }], error: null }],
     })
     createAdminClient.mockReturnValue(adminClient)
     mintStudentSession.mockResolvedValue({ ok: true })
@@ -1175,7 +1175,7 @@ describe('verifyResultAccess', () => {
       verifyResultAccess(undefined, formData({ matric_number: 'CSC/2021/001', date_of_birth: '2003-04-12' }))
     ).rejects.toThrow('REDIRECT')
 
-    expect(mintStudentSession).toHaveBeenCalledWith('a@uni-1.students.oems.internal')
+    expect(mintStudentSession).toHaveBeenCalledWith('a@uni-1.students.pcu-cbt.internal')
     expect(redirect).toHaveBeenCalledWith('/student/results')
   })
 })
@@ -1425,7 +1425,7 @@ export function LabCodeEntry() {
 
 - [ ] **Step 2: Update the page copy in `app/lab/page.js`**
 
-Change the subtitle text (line 18) from "Enter the lab code displayed by your lecturer" to "Enter your matric number and the exam access code" — and update `metadata.title` from `'Enter Lab Code — OEMS'` to `'Enter Exam — OEMS'`.
+Change the subtitle text (line 18) from "Enter the lab code displayed by your lecturer" to "Enter your matric number and the exam access code" — and update `metadata.title` from `'Enter Lab Code — PCU CBT'` to `'Enter Exam — PCU CBT'`.
 
 - [ ] **Step 3: Make `/lab` reachable without a session, without exposing `/lab/[code]`**
 
@@ -1492,7 +1492,7 @@ export default function CheckResultLayout({ children }) {
 ```jsx
 import { CheckResultForm } from './CheckResultForm'
 
-export const metadata = { title: 'Check Result — OEMS' }
+export const metadata = { title: 'Check Result — PCU CBT' }
 
 export default function CheckResultPage() {
   return (

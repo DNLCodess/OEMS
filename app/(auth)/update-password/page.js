@@ -1,7 +1,7 @@
 import { requireRole } from '@/lib/dal'
 import { UpdatePasswordForm } from './UpdatePasswordForm'
 
-export const metadata = { title: 'Set New Password — OEMS' }
+export const metadata = { title: 'Set New Password — PCU CBT' }
 
 export default async function UpdatePasswordPage() {
   // Credential-less student sessions must never be able to set a real,

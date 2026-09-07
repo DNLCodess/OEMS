@@ -4,7 +4,7 @@ Two small, mechanical changes, bundled because both are pure UI/config surface c
 
 ## 1. PCU-only rebrand
 
-**Problem:** OEMS is architecturally multi-tenant (any number of universities), but this deployment is for one institution — Precious Cornerstone University — and should present that way: PCU's own brand, no visible "add another university" framing.
+**Problem:** PCU CBT is architecturally multi-tenant (any number of universities), but this deployment is for one institution — Precious Cornerstone University — and should present that way: PCU's own brand, no visible "add another university" framing.
 
 **Theme (`app/globals.css`):** replace the current deep-navy palette with PCU's actual brand, sourced from `~/Developer/pcu/short-course` (which mirrors the real pcu.edu.ng):
 - `--color-primary: #3a0a5e` (deep purple)
@@ -14,7 +14,7 @@ Two small, mechanical changes, bundled because both are pure UI/config surface c
 
 **Typography:** swap `Plus Jakarta Sans` for `Inter` (body) and add `Playfair Display` for headings only (`h1`–`h6`), matching PCU's own site. `Geist Mono` (used for matric numbers/codes) is unchanged — it's functional, not decorative.
 
-**Copy:** `README.md` and `app/layout.js`'s `metadata` (title/description) updated to name PCU specifically. Product name stays "OEMS" — a full rename is a bigger change for no real benefit; "OEMS — Precious Cornerstone University's CBT platform" carries the framing without it.
+**Copy:** `README.md` and `app/layout.js`'s `metadata` (title/description) updated to name PCU specifically. Product name stays "PCU CBT" — a full rename is a bigger change for no real benefit; "PCU CBT — Precious Cornerstone University's CBT platform" carries the framing without it.
 
 **Multi-tenant UI:** remove the "Universities" link from the super-admin sidebar nav (`components/shared/Sidebar.js`). The route (`app/super-admin/universities/*`) and the underlying schema are untouched — this is a visibility change for the demo/writeup, not a removal, consistent with "hide the framing," not "prevent re-expansion later."
 

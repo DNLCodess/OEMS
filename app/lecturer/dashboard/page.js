@@ -4,11 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/shared/TopBar'
 import {
   FileQuestion, ScrollText, Users, BarChart2, ArrowRight,
-  CheckCircle2, Plus, Eye, BookOpen,
+  Plus, Eye,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
-import { formatDistanceToNow } from 'date-fns'
 
 export const metadata = { title: 'Dashboard' }
 

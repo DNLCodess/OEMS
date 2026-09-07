@@ -10,7 +10,7 @@ import { MatricEntryForm } from '../MatricEntryForm'
 import { Monitor } from 'lucide-react'
 import { BrandedPageBackground } from '@/components/shared/BrandedPageBackground'
 
-export const metadata = { title: 'Exam Result — OEMS Lab' }
+export const metadata = { title: 'Exam Result — PCU CBT Lab' }
 
 export default async function LabResultPage({ params }) {
   const { code } = await params
@@ -103,7 +103,13 @@ export default async function LabResultPage({ params }) {
     .eq('student_id', user.id)
     .maybeSingle()
 
-  const { data: examQuestions, error: examQuestionsError } = await supabase
+  // RLS on exam_questions only grants students SELECT while they have an
+  // in_progress attempt (see the lobby page for the same issue) — by the
+  // time they're viewing their result the attempt is 'submitted', so that
+  // policy no longer applies. isAuthedForThisExam + the attempt/result
+  // lookups above already prove this student owns this exam and attempt,
+  // so the admin client is safe here.
+  const { data: examQuestions, error: examQuestionsError } = await adminClient
     .from('exam_questions')
     .select('question_id, marks')
     .eq('exam_id', examId)
@@ -128,7 +134,10 @@ export default async function LabResultPage({ params }) {
 
   let responses = []
   if (result && attempt) {
-    const { data: rawResponses, error: responsesError } = await supabase
+    // Same reasoning as the exam_questions fetch above: the joined
+    // question_bank content is only RLS-visible to a student mid-attempt,
+    // and this attempt is already submitted.
+    const { data: rawResponses, error: responsesError } = await adminClient
       .from('responses')
       .select(`
         question_id, student_answer, is_correct, marks_awarded, teacher_feedback,

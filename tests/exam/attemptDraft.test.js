@@ -37,7 +37,7 @@ describe('buildAttemptState', () => {
   })
 
   it('merges local draft answers over server-confirmed ones, local winning on conflict', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({
       answers: { q1: 'B', q3: 'C' },
       currentIndex: 1,
       flagged: ['q2'],
@@ -51,7 +51,7 @@ describe('buildAttemptState', () => {
   })
 
   it('always computes timeRemaining from startedAt/duration, ignoring anything in the local draft', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({
       answers: {},
       currentIndex: 0,
       flagged: [],
@@ -73,7 +73,7 @@ describe('buildAttemptState', () => {
   })
 
   it('keys the draft lookup by attemptId, so a different attempt never sees this draft', () => {
-    storage.setItem('oems:exam:attempt-1', JSON.stringify({ answers: { q1: 'B' }, currentIndex: 1, flagged: [] }))
+    storage.setItem('pcu-cbt:exam:attempt-1', JSON.stringify({ answers: { q1: 'B' }, currentIndex: 1, flagged: [] }))
 
     const state = buildAttemptState('attempt-2', responses, startedAt, 60)
 
@@ -82,7 +82,7 @@ describe('buildAttemptState', () => {
   })
 
   it('falls back cleanly when the stored draft is corrupted JSON', () => {
-    storage.setItem('oems:exam:attempt-1', '{not valid json')
+    storage.setItem('pcu-cbt:exam:attempt-1', '{not valid json')
 
     const state = buildAttemptState('attempt-1', responses, startedAt, 60)
 

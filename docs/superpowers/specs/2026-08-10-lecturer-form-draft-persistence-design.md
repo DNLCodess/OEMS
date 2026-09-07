@@ -32,7 +32,7 @@ No new dependencies — native `localStorage` plus a small inline debounce.
 ### 2. Storage key: scoped per-lecturer, per-form, per-entity
 
 ```
-oems:draft:<lecturerId>:<question|exam>:<questionId|examId|'new'>
+pcu-cbt:draft:<lecturerId>:<question|exam>:<questionId|examId|'new'>
 ```
 
 `lecturerId` comes from `requireRole('lecturer')` in the server page component (already fetched there) and is threaded down as a new prop to `QuestionForm`/`ExamSettingsForm`. This prevents one lecturer's unsaved draft from surfacing for a different lecturer on a shared lab/office computer. Keying by entity id (not just "question"/"exam") means an edit-form draft never bleeds into a different question/exam, and create vs. edit never collide.
@@ -45,7 +45,7 @@ In each form, one call right after the existing `useForm(...)`:
 
 ```js
 const { restored, clearDraft, dismissRestored } = useFormDraft(
-  `oems:draft:${lecturerId}:question:${question?.id ?? 'new'}`,
+  `pcu-cbt:draft:${lecturerId}:question:${question?.id ?? 'new'}`,
   { watch, reset, ...formMethods }
 )
 ```

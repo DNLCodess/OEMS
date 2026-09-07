@@ -1474,7 +1474,7 @@ Change (currently lines 44-83):
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-text-primary truncate">{uni.name}</p>
-                      <p className="text-xs font-mono text-text-muted">{uni.subdomain}.oems.edu</p>
+                      <p className="text-xs font-mono text-text-muted">{uni.subdomain}.pcu-cbt.edu</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-center shrink-0">
@@ -1525,7 +1525,7 @@ to:
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-text-primary truncate">{uni.name}</p>
-                        <p className="text-xs font-mono text-text-muted">{uni.subdomain}.oems.edu</p>
+                        <p className="text-xs font-mono text-text-muted">{uni.subdomain}.pcu-cbt.edu</p>
                       </div>
                     </div>
                     {!userCountsError && (

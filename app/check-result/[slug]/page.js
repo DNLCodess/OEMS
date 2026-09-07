@@ -8,7 +8,7 @@ import { ResultsList } from '@/components/student/ResultsList'
 import { UniversityBadge } from '@/components/shared/UniversityBadge'
 import { getUniversityThemeStyle } from '@/lib/universityTheme'
 
-export const metadata = { title: 'Check Result — OEMS' }
+export const metadata = { title: 'Check Result — PCU CBT' }
 
 export default async function UniversityCheckResultPage({ params }) {
   const { slug } = await params

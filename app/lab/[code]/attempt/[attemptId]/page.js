@@ -3,8 +3,9 @@ import { requireRole } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { ExamInterface } from '@/components/student/ExamInterface'
 import { submitExam } from '@/lib/actions/attempts'
+import { applyExamRandomization } from '@/lib/exam/randomize'
 
-export const metadata = { title: 'Exam — OEMS Lab' }
+export const metadata = { title: 'Exam — PCU CBT Lab' }
 
 export default async function LabAttemptPage({ params }) {
   const user     = await requireRole('student')
@@ -110,10 +111,8 @@ export default async function LabAttemptPage({ params }) {
     ...eq.question_bank,
   }))
 
-  if (exam.randomise_questions) {
-    const seed = parseInt(attemptId.replace(/-/g, '').slice(0, 8), 16)
-    questions = deterministicShuffle(questions, seed)
-  }
+  const seed = parseInt(attemptId.replace(/-/g, '').slice(0, 8), 16)
+  questions = applyExamRandomization(questions, exam, seed)
 
   return (
     <ExamInterface
@@ -127,15 +126,4 @@ export default async function LabAttemptPage({ params }) {
       labCode={code}
     />
   )
-}
-
-function deterministicShuffle(arr, seed) {
-  const result = [...arr]
-  let s = seed
-  for (let i = result.length - 1; i > 0; i--) {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    const j = Math.abs(s) % (i + 1)
-    ;[result[i], result[j]] = [result[j], result[i]]
-  }
-  return result
 }

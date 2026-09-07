@@ -1,4 +1,4 @@
-# OEMS — Supabase → SQL Server Migration (LAN CBT Platform)
+# PCU CBT — Supabase → SQL Server Migration (LAN CBT Platform)
 
 **Date:** 2026-09-07
 **Status:** Design approved, implementation pending
@@ -8,7 +8,7 @@
 
 ## 1. Background & Goal
 
-OEMS today is a multi-tenant SaaS built on **Supabase** (managed
+PCU CBT today is a multi-tenant SaaS built on **Supabase** (managed
 PostgreSQL + Supabase Auth + Row Level Security + Storage). It must
 become a **self-hosted, offline, single-institution Computer-Based
 Testing (CBT) platform** that runs on **one Windows server PC on an
@@ -54,7 +54,7 @@ deliberately air-gapped to prevent cheating.
   │   └───────────────┬─────────────────────────┘ │
   │                   │ localhost:1433 (TCP, loopback only) │
   │   ┌───────────────▼─────────────────────────┐ │
-  │   │ SQL Server 2022  (DB: OEMS)              │ │
+  │   │ SQL Server 2022  (DB: PCU CBT)              │ │
   │   └─────────────────────────────────────────┘ │
   │   Windows Service wrapper + Task Scheduler backup │
   └───────────────────────────────────────────────┘
@@ -97,7 +97,7 @@ IDs are stable references for the implementation plan.
 - **FR-AUTH-2** A successful sign-in creates a row in `sessions`
   (opaque 256-bit random token, `user_id`, `channel='password'`,
   `created_at`, `expires_at`, `last_seen_at`) and sets an **HttpOnly,
-  SameSite=Lax** cookie `oems_session` holding the token. Cookie
+  SameSite=Lax** cookie `pcu-cbt_session` holding the token. Cookie
   `Secure` flag is **on when served over HTTPS, off over plain HTTP**
   (LAN fallback).
 - **FR-AUTH-3** Staff sessions expire after **12 hours** of inactivity
@@ -374,7 +374,7 @@ sample faculty/department/course + a demo lecturer/student.
   profile only.
 - **NFR-SEC-3** SQL Server **Mixed Mode**; the `sa` account gets a
   strong password and is then **disabled**; the app connects as a
-  dedicated least-privilege login (`oems_app`) with `db_datareader` +
+  dedicated least-privilege login (`pcu-cbt_app`) with `db_datareader` +
   `db_datawriter` + EXECUTE on the DB only.
 - **NFR-SEC-4** **HTTPS on the LAN**: run a local reverse proxy
   (**Caddy** with its internal CA, or `mkcert`-issued cert) terminating

@@ -82,7 +82,7 @@ function UserFooter({ user }) {
       <div className="px-3 py-2 mb-1">
         <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
         {/* Students authenticate credential-less; their email is a synthetic
-            internal address (<matric>@<uni-id>.students.oems.internal) that
+            internal address (<matric>@<uni-id>.students.pcu-cbt.internal) that
             is implementation plumbing and must never be shown to them. */}
         {user.role !== 'student' && (
           <p className="text-xs text-white/55 truncate">{user.email}</p>
@@ -129,7 +129,7 @@ export function Sidebar({ user, logoUrl }) {
               <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">OEMS</p>
+              <p className="text-sm font-bold text-white leading-tight">PCU CBT</p>
               <p className="text-xs text-white/60 leading-tight">{roleLabel}</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export function Sidebar({ user, logoUrl }) {
           <span className="flex size-7 items-center justify-center rounded-lg bg-white/15">
             <BrandIcon logoUrl={logoUrl} size={7} />
           </span>
-          <span className="text-sm font-bold text-white">OEMS</span>
+          <span className="text-sm font-bold text-white">PCU CBT</span>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -179,7 +179,7 @@ export function Sidebar({ user, logoUrl }) {
               <BrandIcon logoUrl={logoUrl} size={8} />
             </span>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">OEMS</p>
+              <p className="text-sm font-bold text-white leading-tight">PCU CBT</p>
               <p className="text-xs text-white/60 leading-tight">{roleLabel}</p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 ## Problem
 
-OEMS has no automated tests. All verification of business logic (role guards,
+PCU CBT has no automated tests. All verification of business logic (role guards,
 validation rules, invite/grading/results logic) currently happens by manually
 clicking through the app. This is the first of four planned follow-up
 workstreams (tracked in `tdl.md`); the other three (super-admin settings UI,

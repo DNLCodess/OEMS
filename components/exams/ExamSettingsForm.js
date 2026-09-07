@@ -4,7 +4,6 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useState } from 'react'
 import { examSettingsFormSchema } from '@/lib/validations/exams'
 import { createExam, updateExamSettings } from '@/lib/actions/exams'
 import { Input } from '@/components/ui/Input'
@@ -73,7 +72,7 @@ export function ExamSettingsForm({ courses, exam = null, lecturerId }) {
     name: 'tips',
   })
 
-  const draftKey = `oems:draft:${lecturerId}:exam:${exam?.id ?? 'new'}`
+  const draftKey = `pcu-cbt:draft:${lecturerId}:exam:${exam?.id ?? 'new'}`
   const { restored, clearDraft, dismissRestored } = useFormDraft(draftKey, { watch, reset, getValues })
 
   function handleDiscardDraft() {

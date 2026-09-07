@@ -1,9 +1,9 @@
-import { GraduationCap } from 'lucide-react'
-import { BrandedPageBackground } from '@/components/shared/BrandedPageBackground'
+import { GraduationCap } from "lucide-react";
+import { BrandedPageBackground } from "@/components/shared/BrandedPageBackground";
 
 export const metadata = {
-  title: 'Sign In',
-}
+  title: "Sign In",
+};
 
 export default function AuthLayout({ children }) {
   return (
@@ -15,8 +15,10 @@ export default function AuthLayout({ children }) {
             <GraduationCap className="size-6 text-white" />
           </span>
           <div>
-            <p className="text-base font-bold text-text-primary leading-tight">OEMS</p>
-            <p className="text-xs text-text-muted leading-tight">Online Examination Management System</p>
+            <p className="text-base font-bold text-white leading-tight">PCU CBT</p>
+            <p className="text-xs text-white leading-tight">
+              Online Examination Management System
+            </p>
           </div>
         </div>
 
@@ -26,5 +28,5 @@ export default function AuthLayout({ children }) {
         </div>
       </div>
     </BrandedPageBackground>
-  )
+  );
 }

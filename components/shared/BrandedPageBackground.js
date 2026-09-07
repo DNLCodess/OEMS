@@ -13,8 +13,8 @@ export function BrandedPageBackground({ children }) {
         style={{ backgroundImage: "url('/pcu/pcu-image1.jpeg')" }}
         aria-hidden="true"
       />
-      <div className="fixed inset-0 -z-10 bg-page/85" aria-hidden="true" />
+      <div className="fixed inset-0 -z-10 bg-primary/40" aria-hidden="true" />
       {children}
     </>
-  )
+  );
 }

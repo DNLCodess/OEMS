@@ -1,5 +1,5 @@
 -- ============================================================
--- OEMS — Online Examination Management System
+-- PCU CBT — Precious Cornerstone University Computer-Based Testing Platform
 -- Supabase / PostgreSQL Schema
 --
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor → New query).
