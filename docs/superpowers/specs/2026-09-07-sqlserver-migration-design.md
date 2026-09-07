@@ -6,6 +6,10 @@
 **Revised:** 2026-09-07 — proctoring/anti-cheat deferred to v2; exam-entry
 access-code lifecycle spelled out; lab IP allowlist added as the primary
 in-hall enforcement control.
+**Revised:** 2026-09-08 — lab-only (remote delivery removed); §8 open
+questions resolved — target **SQL Server Express** (no licence), ~50 lab
+PCs / 200 ceiling, access code **auto-rotates** by default (manual mode
+available), **plain HTTP** for v1; added §2.1 lab-network explainer.
 
 ---
 
@@ -23,6 +27,7 @@ deliberately air-gapped to prevent cheating.
 
 **Exam integrity for v1** relies on three controls, not on camera
 proctoring or browser lockdown (both deferred to v2):
+
 1. the air-gapped LAN (no route off-network),
 2. a per-exam **access code** the invigilator hands out in the hall and
    can revoke at any moment, and
@@ -33,17 +38,21 @@ proctoring or browser lockdown (both deferred to v2):
 
 ### Decisions locked in (from brainstorming)
 
-| Decision | Choice |
-|---|---|
-| Data migration | **Fresh start** — no ETL. Port schema + code; seed fresh. |
-| Tenancy | **Logical single-tenant** — schema keeps `university_id` FKs, app enforces exactly one institution row. No subdomain routing, no cross-tenant super-admin duties. |
-| Auth | **Custom session-cookie auth** — own the `users` table, hash staff passwords, opaque session tokens in an HttpOnly cookie backed by a `sessions` table. |
-| DB access layer | **Prisma** (SQL Server provider) + a thin repository layer at `lib/db`. |
-| Migration style | **Ports-and-adapters, incremental** — introduce `lib/db` + `lib/auth` boundaries, translate RLS policies to code, rewrite the 52 Supabase call sites feature-slice by feature-slice with tests green at each step. |
-| Concurrency target | **150–200 concurrent students** on one exam sitting. |
-| Proctoring / anti-cheat | **Deferred to v2.** v1 exam integrity = air-gapped LAN + revocable per-exam access code + lab IP allowlist. |
-| In-hall enforcement | **Lab IP allowlist** — exam entry and answer-saving only from approved lab-PC IPs/CIDRs. |
-| Delivery mode | **Lab-only.** Remote exam delivery is fully removed — no `exam_mode` concept, no `remote` value. The supervised in-lab `/lab/{code}` flow is the only student path. |
+| Decision                | Choice                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Data migration          | **Fresh start** — no ETL. Port schema + code; seed fresh.                                                                                                                                                          |
+| Tenancy                 | **Logical single-tenant** — schema keeps `university_id` FKs, app enforces exactly one institution row. No subdomain routing, no cross-tenant super-admin duties.                                                  |
+| Auth                    | **Custom session-cookie auth** — own the `users` table, hash staff passwords, opaque session tokens in an HttpOnly cookie backed by a `sessions` table.                                                            |
+| DB access layer         | **Prisma** (SQL Server provider) + a thin repository layer at `lib/db`.                                                                                                                                            |
+| Migration style         | **Ports-and-adapters, incremental** — introduce `lib/db` + `lib/auth` boundaries, translate RLS policies to code, rewrite the 52 Supabase call sites feature-slice by feature-slice with tests green at each step. |
+| Concurrency target      | **150–200 concurrent students** on one exam sitting.                                                                                                                                                               |
+| Proctoring / anti-cheat | **Deferred to v2.** v1 exam integrity = air-gapped LAN + revocable per-exam access code + lab IP allowlist.                                                                                                        |
+| In-hall enforcement     | **Lab IP allowlist** — exam entry and answer-saving only from approved lab-PC IPs/CIDRs.                                                                                                                           |
+| Delivery mode           | **Lab-only.** Remote exam delivery is fully removed — no `exam_mode` concept, no `remote` value. The supervised in-lab `/lab/{code}` flow is the only student path.                                                |
+| SQL Server edition      | **Express** (free, no licence held). Load test on real hardware is the acceptance gate; tuning/Standard is the escalation path.                                                                                   |
+| Transport               | **Plain HTTP** on the LAN for v1 (air-gapped, proctoring deferred). `TRUST_PROXY=0`.                                                                                                                              |
+| Access code             | **Auto-rotate on go-live** by default; per-exam **manual** mode available. Revocable any time.                                                                                                                   |
+| Scale                   | ~50 concurrent typical (one lab), **200 ceiling** (multi-lab).                                                                                                                                                    |
 
 ### Non-goals
 
@@ -97,18 +106,66 @@ proctoring or browser lockdown (both deferred to v2):
 policy becomes an explicit `WHERE` clause + role guard in a
 `lib/db/repositories/*` function, covered by a unit test.
 
+### 2.1 Lab network & the IP allowlist — plain-language explainer
+
+**What an IP address is.** Every machine on a network has a number like
+`192.168.1.42`. On a private LAN the first three groups (`192.168.1`)
+usually identify *the network* and the last group (`.42`) identifies
+*one machine* on it.
+
+**Static vs DHCP.** By default a router hands out addresses
+automatically (DHCP) — a PC could be `.42` today and `.87` next week.
+For the allowlist to mean anything, each lab PC must keep the **same
+address every time**: either set a *static IP* on the PC, or make a
+*DHCP reservation* on the router that pins an address to that PC's
+hardware (MAC) address. This is a one-time job when the lab is set up
+(NFR-SEC-10).
+
+**What the allowlist does.** The app keeps a list of "addresses allowed
+to take exams." When a student submits their matric number + access
+code, the server looks at *which machine the request came from*. If
+that machine's IP is not on the list, entry is refused — even with a
+valid matric number and the correct code. This is what stops a student
+sitting in the corridor with their laptop (joined to the lab Wi-Fi, code
+shouted across the room) from starting the exam.
+
+**Two ways to fill the list:**
+
+| Approach | What you enter | When to use |
+|---|---|---|
+| **Per-host** (recommended, ~50 PCs) | Each lab PC's individual IP: `192.168.1.11`, `.12`, `.13`, … The admin page has an "add range 192.168.1.11–192.168.1.60" helper that creates all 50 in one click. | Whenever anything *other than* the exam PCs can also reach the server — a staff Wi-Fi, spare wall ports, the library. Only the listed 50 machines get in. |
+| **Single CIDR** (shortcut) | One entry describing the whole range, e.g. `192.168.1.0/24` = "any address `192.168.1.0`–`192.168.1.255`". | Only if the exam LAN is **physically dedicated** — that switch / access point has *nothing* plugged in but the 50 lab PCs and the server. Then "anyone who can reach the server is in the exam room by definition." |
+
+**Why per-host is safer.** A CIDR is only as tight as your physical
+control of the network. If someone can plug a laptop into a free port on
+that switch, a CIDR lets them in; a per-host list does not. For PCU's
+first deployment: dedicated wired lab, unused switch ports disabled, and
+a per-host list of the 50 PCs.
+
+**Where the check runs.** On exam entry, on "start exam", and on every
+answer autosave (FR-LAB-2). *Not* on final submit — a student who
+legitimately started must always be able to finish. Staff logins and
+result lookups are never IP-restricted.
+
+**`TRUST_PROXY`.** Because we're serving plain HTTP straight from Node
+(no reverse proxy — decision §8 Q6), the server reads the requesting
+machine's address directly from the network connection, and it
+**ignores** any `X-Forwarded-For` header (which a client could fake).
+`TRUST_PROXY=0`. If a proxy is ever added, this flips to `1` and the
+proxy becomes the trusted source of the real client IP (NFR-SEC-9).
+
 ### Module boundaries
 
-| Module | Responsibility | Depends on |
-|---|---|---|
-| `lib/db/client.js` | Singleton `PrismaClient`, pool config | Prisma |
-| `lib/db/repositories/*.js` | One file per aggregate (users, exams, questions, attempts, results, structure, logs). All SQL lives here. Enforces authz via caller-supplied actor context. | `lib/db/client` |
-| `lib/auth/session.js` | Create / read / destroy sessions; cookie handling | `lib/db`, `next/headers` |
-| `lib/auth/password.js` | `hash()` / `verify()` (argon2id) | `@node-rs/argon2` |
-| `lib/dal.js` | `getAuthUser()`, `requireRole()` — unchanged signature, now reads the session cookie instead of Supabase | `lib/auth`, `lib/db` |
-| `lib/actions/*.js` | Server Actions — unchanged responsibilities, call repositories instead of Supabase client | `lib/dal`, `lib/db` |
-| `lib/security/clientIp.js` | Resolve the true client IP (trusted-proxy aware) and test it against the lab allowlist (IP + CIDR) | `lib/db` (allowlist repo), config |
-| `middleware.js` | Cookie-presence redirect only (no DB). IP allowlist is **not** enforced here (middleware can't see the socket IP reliably behind the proxy without extra config) — it is enforced in the exam Server Actions. | `lib/auth` (cookie name) |
+| Module                     | Responsibility                                                                                                                                                                                                | Depends on                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `lib/db/client.js`         | Singleton `PrismaClient`, pool config                                                                                                                                                                         | Prisma                            |
+| `lib/db/repositories/*.js` | One file per aggregate (users, exams, questions, attempts, results, structure, logs). All SQL lives here. Enforces authz via caller-supplied actor context.                                                   | `lib/db/client`                   |
+| `lib/auth/session.js`      | Create / read / destroy sessions; cookie handling                                                                                                                                                             | `lib/db`, `next/headers`          |
+| `lib/auth/password.js`     | `hash()` / `verify()` (argon2id)                                                                                                                                                                              | `@node-rs/argon2`                 |
+| `lib/dal.js`               | `getAuthUser()`, `requireRole()` — unchanged signature, now reads the session cookie instead of Supabase                                                                                                      | `lib/auth`, `lib/db`              |
+| `lib/actions/*.js`         | Server Actions — unchanged responsibilities, call repositories instead of Supabase client                                                                                                                     | `lib/dal`, `lib/db`               |
+| `lib/security/clientIp.js` | Resolve the true client IP (trusted-proxy aware) and test it against the lab allowlist (IP + CIDR)                                                                                                            | `lib/db` (allowlist repo), config |
+| `middleware.js`            | Cookie-presence redirect only (no DB). IP allowlist is **not** enforced here (middleware can't see the socket IP reliably behind the proxy without extra config) — it is enforced in the exam Server Actions. | `lib/auth` (cookie name)          |
 
 ---
 
@@ -216,23 +273,33 @@ IDs are stable references for the implementation plan.
   all institution students may.
 - **FR-EXAM-4** `updateExamStatus` stamps `go_live_at` on the
   transition to `live`; the entry window is `go_live_at +
-  entry_window_minutes`.
+entry_window_minutes`.
 - **FR-EXAM-5** Bulk matric-list import for `exam_access` (per the
   2026-08-11 bulk-import design) is preserved.
 
 #### Exam access code lifecycle
 
 - **FR-EXAM-6** Each exam has a short **access code** (6 uppercase
-  alphanumeric chars, ambiguous chars `0/O/1/I` excluded). The lecturer
-  **generates** it from the exam page; it is displayed large and
-  printable so the invigilator can write it on the board / hand it out
-  to everyone in the lab.
+  alphanumeric chars, ambiguous chars `0/O/1/I` excluded), displayed
+  large and printable so the invigilator can write it on the board /
+  hand it out to everyone in the lab. An exam carries `access_code_mode`
+  (`auto` | `manual`, **default `auto`**):
+  - **`auto`** — the system assigns a random code on exam creation and
+    **rotates it to a fresh random code on every transition into
+    `live`** (so each sitting of a re-used exam gets a new code with no
+    lecturer action).
+  - **`manual`** — the lecturer types their own code (still validated
+    for shape and non-revoked uniqueness) and it is **never**
+    auto-rotated; only the lecturer changes it.
+  The lecturer can switch modes and regenerate on demand from the exam
+  page at any time.
 - **FR-EXAM-7** The lecturer can **revoke** the code at any time
   (during the exam included). Revoking sets `access_code_revoked_at`.
   A revoked code immediately fails **new** exam entry (FR-AUTH-6c); it
   does **not** affect students already `in_progress` (they keep their
-  session and the FR-ATT-3 resume path). Revoke + generate again mints a
-  fresh code (old one stays dead).
+  session and the FR-ATT-3 resume path). Regenerating (auto or manual)
+  after a revoke mints a fresh code and clears `access_code_revoked_at`;
+  the old code stays dead.
 - **FR-EXAM-8** The access code is only accepted while the exam is
   `live` and within the entry window; outside that it is inert
   regardless of revoke state.
@@ -245,7 +312,13 @@ IDs are stable references for the implementation plan.
   of entries, each a single IPv4 address **or** a CIDR range (e.g.
   `192.168.1.0/24`), with an optional label ("Lab A row 1", etc.) and an
   `is_active` flag. Managed by `school_admin` / `super_admin` in an admin
-  page (`/admin/lab-network` or under settings).
+  page (`/admin/lab-network` or under settings). The page offers a
+  **"add range" helper** that expands a start–end IP span into individual
+  per-host entries in one action (for the ~50-PC per-host approach), as
+  well as accepting a single CIDR entry (for a dedicated lab subnet).
+  Recommended default: **per-host entries** for the 50 lab PCs (a CIDR is
+  only as tight as the physical control over what else can join that
+  subnet — spare ports, Wi-Fi APs).
 - **FR-LAB-2** **Enforcement points** — the resolved client IP must
   match an active allowlist entry for: student exam-entry verification
   (FR-AUTH-6a), `startExam`, and `saveAnswer`. `submitExam` is
@@ -345,20 +418,20 @@ One migration history under `prisma/migrations`.
 
 ### 4.1 Type mapping rules
 
-| Postgres | SQL Server (Prisma) | Notes |
-|---|---|---|
-| `UUID` PK `DEFAULT uuid_generate_v4()` | `String @id @default(uuid()) @db.NVarChar(36)` | App-generated. Keeps existing string IDs across the codebase. Add a **clustered index on `created_at`** for tables with heavy inserts (`responses`, `attempt_events`, logs) so the random-GUID PK stays non-clustered. |
-| `ENUM` types | `String` + `CHECK` constraint (added in a follow-up raw-SQL migration) + Zod validation | Prisma has no SQL Server enum. Allowed values centralised in `lib/db/enums.js`. |
-| `TIMESTAMPTZ` | `DateTime @db.DateTime2` | **Store UTC**, convert at the edge. Document the convention. |
-| `JSONB` | `String @db.NVarChar(Max)` | Repo layer does `JSON.parse` / `JSON.stringify`. No server-side JSON filtering (already filtered in app). |
-| `TEXT[]` (`tags`, `tips`) | `String @db.NVarChar(Max)` holding a JSON array | Helper `toJsonArray` / `fromJsonArray` in repo. |
-| `BOOLEAN` | `Boolean` (`BIT`) | — |
-| `TEXT` | `String @db.NVarChar(Max)` or sized `NVarChar` for short fields | Size `email`, `matric_number`, codes, names. |
-| Partial unique idx `WHERE x IS NOT NULL` | **Filtered unique index** via raw SQL migration | SQL Server supports `CREATE UNIQUE INDEX ... WHERE ...`. |
-| `auth.users` FK on `users.id` | **Dropped** | `users` is now standalone; add `password_hash NVARCHAR(MAX) NULL`, `must_change_password BIT NOT NULL DEFAULT 0`. |
-| `handle_new_user()` trigger | **Dropped** | App inserts `users` rows explicitly. |
-| RLS policies + helper functions | **Dropped** | Re-implemented in `lib/db/repositories`. |
-| `NOW()` defaults | `@default(now())` | — |
+| Postgres                                      | SQL Server (Prisma)                                                                                                                                                                         | Notes                                                                                                                                                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UUID` PK `DEFAULT uuid_generate_v4()`        | `String @id @default(uuid()) @db.NVarChar(36)`                                                                                                                                              | App-generated. Keeps existing string IDs across the codebase. Add a **clustered index on `created_at`** for tables with heavy inserts (`responses`, `attempt_events`, logs) so the random-GUID PK stays non-clustered. |
+| `ENUM` types                                  | `String` + `CHECK` constraint (added in a follow-up raw-SQL migration) + Zod validation                                                                                                     | Prisma has no SQL Server enum. Allowed values centralised in `lib/db/enums.js`.                                                                                                                                        |
+| `TIMESTAMPTZ`                                 | `DateTime @db.DateTime2`                                                                                                                                                                    | **Store UTC**, convert at the edge. Document the convention.                                                                                                                                                           |
+| `JSONB`                                       | `String @db.NVarChar(Max)`                                                                                                                                                                  | Repo layer does `JSON.parse` / `JSON.stringify`. No server-side JSON filtering (already filtered in app).                                                                                                              |
+| `TEXT[]` (`tags`, `tips`)                     | `String @db.NVarChar(Max)` holding a JSON array                                                                                                                                             | Helper `toJsonArray` / `fromJsonArray` in repo.                                                                                                                                                                        |
+| `BOOLEAN`                                     | `Boolean` (`BIT`)                                                                                                                                                                           | —                                                                                                                                                                                                                      |
+| `TEXT`                                        | `String @db.NVarChar(Max)` or sized `NVarChar` for short fields                                                                                                                             | Size `email`, `matric_number`, codes, names.                                                                                                                                                                           |
+| Partial unique idx `WHERE x IS NOT NULL`      | **Filtered unique index** via raw SQL migration                                                                                                                                             | SQL Server supports `CREATE UNIQUE INDEX ... WHERE ...`.                                                                                                                                                               |
+| `auth.users` FK on `users.id`                 | **Dropped**                                                                                                                                                                                 | `users` is now standalone; add `password_hash NVARCHAR(MAX) NULL`, `must_change_password BIT NOT NULL DEFAULT 0`.                                                                                                      |
+| `handle_new_user()` trigger                   | **Dropped**                                                                                                                                                                                 | App inserts `users` rows explicitly.                                                                                                                                                                                   |
+| RLS policies + helper functions               | **Dropped**                                                                                                                                                                                 | Re-implemented in `lib/db/repositories`.                                                                                                                                                                               |
+| `NOW()` defaults                              | `@default(now())`                                                                                                                                                                           | —                                                                                                                                                                                                                      |
 | `ON DELETE CASCADE` / `RESTRICT` / `SET NULL` | Same via Prisma relations + `onDelete`. **Watch SQL Server multiple-cascade-path errors** — some cascades become `NoAction` + explicit app-side cleanup (documented per table in the plan). |
 
 ### 4.2 New / changed tables
@@ -374,6 +447,7 @@ One migration history under `prisma/migrations`.
 - **`verification_attempts`** — unchanged shape (`matric_number`, `ip`,
   `created_at`).
 - **`exams`** — add `access_code_revoked_at` DATETIME2 NULL (FR-EXAM-7),
+  `access_code_mode` NVARCHAR(10) NOT NULL DEFAULT `'auto'` (FR-EXAM-6),
   `enforce_ip_allowlist` BIT NOT NULL DEFAULT 1 (FR-LAB-3). **Drop**
   `exam_mode` and its CHECK (lab-only, FR-EXAM-2); `proctoring_enabled`
   stays (unused, default 0, for v2). One code column: keep `access_code`,
@@ -402,8 +476,10 @@ sample faculty/department/course + a demo lecturer/student.
 
 ### 5.1 Performance & Concurrency (the 150–200 budget)
 
-- **NFR-PERF-1** The system must sustain **200 concurrent active
-  attempts** on a single exam with:
+- **NFR-PERF-1** Sizing: **~50 concurrent students is the typical
+  sitting** (one lab of 50 PCs); **200 is the hard ceiling** (multiple
+  labs / a large hall running the same exam). The system must sustain
+  **200 concurrent active attempts** on a single exam with:
   - answer autosave p95 latency **< 400 ms**,
   - page navigation (next/prev question) p95 **< 600 ms**,
   - exam start p95 **< 1.5 s**,
@@ -433,16 +509,21 @@ sample faculty/department/course + a demo lecturer/student.
 
 ### 5.2 SQL Server edition & sizing
 
-- **NFR-DB-1** **Preferred: SQL Server 2022 Standard** if the
-  university holds a licence (no buffer-pool cap, uses all cores).
-- **NFR-DB-2** **Acceptable fallback: SQL Server 2022 Express** —
-  limits: 1 GB buffer pool, lesser of 4 cores / 1 socket, 10 GB per
-  DB. Adequate for this workload **because** the working set (one
-  exam's questions + active attempts) is a few MB and writes are
-  small. NFR-PERF-6 load test **must** be run on Express if Express is
-  what ships.
+- **NFR-DB-1** **Target: SQL Server 2022 Express** (free, no licence).
+  Confirmed: the institution does not hold a Standard licence. Express
+  limits: 1 GB buffer pool, lesser of 4 cores / 1 socket, 10 GB per DB.
+  Adequate for this workload **because** the working set (one exam's
+  questions + active attempts) is a few MB, writes are small single-row
+  upserts, and the debounced-15 s autosave (NFR-PERF-7) keeps the write
+  rate flat (~13/s at the 200 ceiling). NFR-PERF-6 load test **must** be
+  run on Express on the real server hardware.
+- **NFR-DB-2** **Escalation path if the load test fails on Express**:
+  (a) tune — raise autosave debounce to 20–30 s, cap max memory
+  correctly, verify indexes; (b) only if still failing, seek a Standard
+  licence. Not expected given the workload math (NFR-PERF-2).
 - **NFR-DB-3** **Do not use Developer edition in production** — it is
-  licensed for dev/test only.
+  licensed for dev/test only. (The Docker image used for local dev/CI is
+  Developer edition — fine there, never on the exam server.)
 - **NFR-DB-4** Recovery model **SIMPLE** (no log shipping needed;
   nightly full backup is the recovery story).
 - **NFR-DB-5** DB collation: `Latin1_General_100_CI_AI` (case- &
@@ -570,7 +651,7 @@ Each slice ends with tests green and the app runnable.
 2. **Slice 1 — Auth core.** `lib/auth/*`, `sessions` table wiring,
    rewrite `lib/dal.js`, `middleware.js`, `lib/actions/auth.js`. Staff
    login/logout works end-to-end. Delete `lib/supabase/{server,client,
-   middleware,admin}.js` usage for auth.
+middleware,admin}.js` usage for auth.
 3. **Slice 2 — Student credential-less auth + lab IP gate.**
    `lib/actions/studentAuth.js`, replace `mintStudentSession`, rate
    limiting via repo. `lib/security/clientIp.js` + `lab_ip_allowlist`
@@ -600,36 +681,50 @@ Each slice ends with tests green and the app runnable.
 
 ## 7. Risks & Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| RLS→code translation misses a policy → data leak | NFR-TEST-1: allow+deny test per policy; slice-by-slice review; keep the old `schema.sql` as the reference checklist. |
-| SQL Server multiple-cascade-path migration errors | Identify during Slice 0; convert offending cascades to `NoAction` + explicit repo cleanup, documented per table. |
-| Express 1 GB / 4-core cap insufficient under real load | NFR-PERF-6 load test on real hardware is a hard gate; escalate to Standard licence if it fails. |
-| Lab PC IPs change (DHCP churn) → students locked out mid-exam | NFR-SEC-10 static IPs / DHCP reservations; allowlist supports CIDR so a whole lab subnet can be entered once; pre-exam checklist verifies a sample lab PC can reach entry. |
-| `TRUST_PROXY` misconfigured → allowlist bypassable or everyone blocked | NFR-SEC-9 single explicit flag + runbook verification step (curl from a lab PC and a non-lab PC, confirm allow/deny). |
-| Student brings own laptop onto the LAN with an IP inside an allowed CIDR | Residual, accepted for v1. Mitigations: prefer per-host IPs over broad CIDR where feasible; invigilator physically controls the hall; access code is hand-distributed and revocable; v2 proctoring. |
-| Access code leaks to a student who is off-site | IP allowlist blocks entry from any non-lab machine; lecturer can revoke + reissue instantly (FR-EXAM-7); every blocked attempt is logged (FR-LAB-6). |
-| Server power loss mid-exam | NFR-HW-3 UPS; FR-ATT-2 15 s commit keeps loss ≤ 15 s. |
-| Clock skew between machines breaks timers | NFR-OPS-6 checklist verifies sync; timers are server-authoritative (FR-ATT-4) so client skew is cosmetic. |
-| GUID PK index fragmentation over years of use | Clustered index on `created_at` for hot tables; annual reindex in maintenance script. |
-| Air-gapped build can't fetch Prisma engines | NFR-INSTALL-2: build on connected machine or one-time online build before air-gapping. |
+| Risk                                                                     | Mitigation                                                                                                                                                                                          |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RLS→code translation misses a policy → data leak                         | NFR-TEST-1: allow+deny test per policy; slice-by-slice review; keep the old `schema.sql` as the reference checklist.                                                                                |
+| SQL Server multiple-cascade-path migration errors                        | Identify during Slice 0; convert offending cascades to `NoAction` + explicit repo cleanup, documented per table.                                                                                    |
+| Express 1 GB / 4-core cap insufficient under real load                   | NFR-PERF-6 load test on real hardware is a hard gate; escalation path is tune first (longer debounce, memory cap, indexes), then a Standard licence (NFR-DB-2). Workload math (NFR-PERF-2) says this is unlikely. |
+| Lab PC IPs change (DHCP churn) → students locked out mid-exam            | NFR-SEC-10 static IPs / DHCP reservations; allowlist supports CIDR so a whole lab subnet can be entered once; pre-exam checklist verifies a sample lab PC can reach entry.                          |
+| `TRUST_PROXY` misconfigured → allowlist bypassable or everyone blocked   | NFR-SEC-9 single explicit flag + runbook verification step (curl from a lab PC and a non-lab PC, confirm allow/deny).                                                                               |
+| Student brings own laptop onto the LAN and takes an allowed IP          | Default is **per-host allowlist** (§2.1), so an extra machine has an unlisted IP and is refused. Broad-CIDR deployments carry more residual risk — accepted for v1, offset by: dedicated wired lab, disabled unused switch ports, invigilator control, revocable code, v2 proctoring. |
+| Access code leaks to a student who is off-site                           | IP allowlist blocks entry from any non-lab machine; lecturer can revoke + reissue instantly (FR-EXAM-7); every blocked attempt is logged (FR-LAB-6).                                                |
+| Server power loss mid-exam                                               | NFR-HW-3 UPS; FR-ATT-2 15 s commit keeps loss ≤ 15 s.                                                                                                                                               |
+| Clock skew between machines breaks timers                                | NFR-OPS-6 checklist verifies sync; timers are server-authoritative (FR-ATT-4) so client skew is cosmetic.                                                                                           |
+| GUID PK index fragmentation over years of use                            | Clustered index on `created_at` for hot tables; annual reindex in maintenance script.                                                                                                               |
+| Air-gapped build can't fetch Prisma engines                              | NFR-INSTALL-2: build on connected machine or one-time online build before air-gapping.                                                                                                              |
 
 ---
 
-## 8. Open Questions
+## 8. Open Questions — **resolved 2026-09-08**
 
-1. Does the institution hold a **SQL Server Standard** licence, or must
-   we target Express? (Affects NFR-PERF-6 pass criteria.)
-2. How many lab PCs / expected peak — is 200 the ceiling or a typical
-   sitting?
-3. Confirm **`super_admin` → single admin** collapse is acceptable
-   (roles retained in code, just no cross-tenant duties).
-4. **Lab network addressing**: will lab PCs get static IPs or DHCP
-   reservations, and is the lab on one dedicated subnet we can allowlist
-   as a single CIDR, or mixed with other traffic (needing per-host
-   entries)?
-5. Should the **access code auto-rotate** (e.g. new code each time an
-   exam goes `live`), or is it purely manual generate/revoke by the
-   lecturer? (Design currently assumes manual.)
-6. Plain HTTP for v1 confirmed acceptable (no proctoring driver), or is
-   HTTPS still wanted for defence-in-depth?
+1. **SQL Server licence?** → No licence. **Target SQL Server Express**
+   (NFR-DB-1). Escalation path documented (NFR-DB-2).
+2. **Lab PC count / peak?** → **~50 lab PCs**, typical sitting ~50
+   concurrent; **200 is the hard ceiling** (multi-lab). NFR-PERF-1
+   updated; load test still targets 200.
+3. **`super_admin` → single admin collapse OK?** → Yes, accepted.
+4. **Lab network addressing?** → Still to be finalised with the campus
+   network setup, but the design now defaults to **per-host allowlist
+   entries** for the ~50 PCs with an "add range" bulk helper, and
+   **requires static IPs / DHCP reservations** (NFR-SEC-10). A single
+   CIDR is supported as a shortcut only if the exam LAN is physically
+   dedicated (nothing else on that switch/AP). See §2.1.
+5. **Access code auto-rotate?** → **`auto` by default** (fresh random
+   code on each go-`live`), with a **`manual`** mode the lecturer can
+   pick. FR-EXAM-6 updated; `exams.access_code_mode` column added.
+6. **HTTP vs HTTPS for v1?** → **Plain HTTP.** Rationale: the network is
+   air-gapped (no eavesdropper), proctoring (the feature that *needed*
+   `getUserMedia` → secure context) is deferred, and HTTPS on a LAN
+   means running + maintaining a local CA / self-signed certs that every
+   lab browser must trust — real operational cost for near-zero benefit
+   here. The session cookie stays HttpOnly + SameSite=Lax; it only drops
+   the `Secure` flag. Revisit at v2 alongside proctoring. `TRUST_PROXY`
+   stays `0`.
+
+### 8.1 Remaining before implementation
+
+- Confirm the exam-LAN topology (Q4) with whoever wires the lab, so the
+  allowlist entries and `TRUST_PROXY=0` assumption are validated by the
+  runbook's curl test.
