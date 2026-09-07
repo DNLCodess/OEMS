@@ -43,6 +43,7 @@ proctoring or browser lockdown (both deferred to v2):
 | Concurrency target | **150–200 concurrent students** on one exam sitting. |
 | Proctoring / anti-cheat | **Deferred to v2.** v1 exam integrity = air-gapped LAN + revocable per-exam access code + lab IP allowlist. |
 | In-hall enforcement | **Lab IP allowlist** — exam entry and answer-saving only from approved lab-PC IPs/CIDRs. |
+| Delivery mode | **Lab-only.** Remote exam delivery is fully removed — no `exam_mode` concept, no `remote` value. The supervised in-lab `/lab/{code}` flow is the only student path. |
 
 ### Non-goals
 
@@ -51,6 +52,11 @@ proctoring or browser lockdown (both deferred to v2):
 - Migrating historical Supabase data.
 - Keeping Supabase as a fallback runtime.
 - Mobile apps.
+- **Remote / unsupervised exam delivery.** This build is exclusively
+  for supervised computer-lab sittings. The `exams.exam_mode` column,
+  the `remote` value and its CHECK, and any "Delivery Mode" UI are
+  removed. Every exam is a lab exam; every student enters through
+  `/lab/{access_code}` from an allowlisted lab PC.
 - **Camera-snapshot proctoring and browser-lockdown anti-cheat
   (fullscreen enforcement, clipboard/context-menu blocking, tab-blur
   logging)** — deferred to **v2**. The existing
@@ -199,8 +205,12 @@ IDs are stable references for the implementation plan.
   closed), attach question-bank questions with per-question marks and
   order, set duration, pass mark, randomisation flags, calculator/tips,
   entry window, access code.
-- **FR-EXAM-2** `exam_mode` retains `remote` and `lab`; the lab kiosk
-  flow (`/lab/{code}`) is the primary path for this deployment.
+- **FR-EXAM-2** **Lab-only delivery.** There is no delivery-mode
+  choice. The `exam_mode` column, the `remote` enum value/CHECK, and the
+  "Delivery Mode" settings UI are removed. Every student enters via
+  `/lab/{access_code}` (FR-AUTH-6). If the live migrations still carry a
+  separate `lab_code` distinct from `access_code`, the plan consolidates
+  to one code.
 - **FR-EXAM-3** Per-student `exam_access` list semantics unchanged: if
   rows exist for an exam, only listed students may access it; otherwise
   all institution students may.
@@ -242,9 +252,10 @@ IDs are stable references for the implementation plan.
   **exempt** (finalising an attempt already legitimately started must
   never be blocked). A mismatch returns a distinct, non-rate-limited
   error. Staff and result-lookup flows are **not** IP-restricted.
-- **FR-LAB-3** **Per-exam override**: an exam may set
-  `enforce_ip_allowlist` (default **true** for `exam_mode='lab'`, default
-  **false** for `remote`). When false, FR-LAB-2 is skipped for that exam.
+- **FR-LAB-3** **Per-exam override**: `enforce_ip_allowlist` defaults
+  **true** on every exam. A lecturer can turn it off for a specific exam
+  (e.g. a staff practice run) — when false, FR-LAB-2 is skipped for that
+  exam.
 - **FR-LAB-4** If the allowlist is **empty** and `enforce_ip_allowlist`
   is true, exam entry **fails closed** for everyone (misconfiguration is
   safer than an open door) — the admin UI warns loudly about this state.
@@ -363,9 +374,11 @@ One migration history under `prisma/migrations`.
 - **`verification_attempts`** — unchanged shape (`matric_number`, `ip`,
   `created_at`).
 - **`exams`** — add `access_code_revoked_at` DATETIME2 NULL (FR-EXAM-7),
-  `enforce_ip_allowlist` BIT NOT NULL DEFAULT 1 (FR-LAB-3). Existing
-  `access_code` / `lab_code` columns retained. Uniqueness on
-  `access_code` becomes a **filtered unique index**
+  `enforce_ip_allowlist` BIT NOT NULL DEFAULT 1 (FR-LAB-3). **Drop**
+  `exam_mode` and its CHECK (lab-only, FR-EXAM-2); `proctoring_enabled`
+  stays (unused, default 0, for v2). One code column: keep `access_code`,
+  drop `lab_code` if the live schema still has it as a separate column.
+  Uniqueness on `access_code` becomes a **filtered unique index**
   `WHERE access_code IS NOT NULL AND access_code_revoked_at IS NULL`
   (FR-EXAM-9).
 - **`lab_ip_allowlist`** — new (`id` PK, `entry` NVARCHAR(64) NOT NULL —
@@ -572,7 +585,8 @@ Each slice ends with tests green and the app runnable.
    Slice 6 (whichever touches the exam UI first).
 6. **Slice 5 — Exams.** `lib/actions/exams.js` + lecturer exam pages,
    exam_access, bulk import, **access-code generate/revoke UI +
-   `enforce_ip_allowlist` toggle** (FR-EXAM-6..9).
+   `enforce_ip_allowlist` toggle** (FR-EXAM-6..9). Remove `exam_mode` /
+   "Delivery Mode" UI and validation; every exam is lab-only.
 7. **Slice 6 — Attempts & results.** `lib/actions/attempts.js`,
    grading, autosave debounce change, per-action IP re-check (FR-ATT-4),
    `/lab/*` flow, results pages, xlsx export. Remove `ProctoringCamera`
