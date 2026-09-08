@@ -19,7 +19,7 @@ describe('prisma/seed', () => {
     const { verifyPassword } = await import('@/lib/auth/password')
     await seed()
     const admin = await prisma.user.findFirst({ where: { role: 'super_admin' } })
-    expect(await verifyPassword(admin.password_hash, process.env.SEED_SUPER_ADMIN_PASSWORD || 'ChangePcu!2026')).toBe(true)
+    expect(await verifyPassword(admin.password_hash, process.env.SEED_SUPER_ADMIN_PASSWORD || 'dev-only-bootstrap-change-me')).toBe(true)
   })
 
   it('is re-runnable without creating duplicates', async () => {

@@ -5,7 +5,14 @@ const INSTITUTION_NAME    = process.env.SEED_INSTITUTION_NAME    || 'Precious Co
 const INSTITUTION_SLUG    = process.env.SEED_INSTITUTION_SLUG    || 'pcu'
 const SUPER_ADMIN_EMAIL   = process.env.SEED_SUPER_ADMIN_EMAIL   || 'superadmin@pcu.edu.ng'
 const SUPER_ADMIN_NAME    = process.env.SEED_SUPER_ADMIN_NAME    || 'System Administrator'
-const SUPER_ADMIN_PASSWORD = process.env.SEED_SUPER_ADMIN_PASSWORD || 'ChangePcu!2026'
+// No hardcoded real-looking fallback: in production the env var is required
+// (fail loudly rather than ship known credentials); in dev a transparently
+// non-production value is fine — the seeded admin has must_change_password.
+const SUPER_ADMIN_PASSWORD =
+  process.env.SEED_SUPER_ADMIN_PASSWORD ||
+  (process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('SEED_SUPER_ADMIN_PASSWORD must be set to seed a production database') })()
+    : 'dev-only-bootstrap-change-me')
 
 export async function seed() {
   // One institution. Upsert on the unique subdomain so re-running is safe.
