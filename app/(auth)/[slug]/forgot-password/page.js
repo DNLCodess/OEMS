@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { ForgotPasswordForm } from '../../forgot-password/ForgotPasswordForm'
+import { ForgotPasswordNotice } from '@/components/auth/ForgotPasswordNotice'
 import { UniversityBadge } from '@/components/shared/UniversityBadge'
 import { getUniversityThemeStyle } from '@/lib/universityTheme'
 
@@ -20,7 +20,7 @@ export default async function UniversityForgotPasswordPage({ params }) {
   return (
     <div style={getUniversityThemeStyle(university)}>
       <UniversityBadge university={university} />
-      <ForgotPasswordForm universitySlug={slug.toLowerCase()} />
+      <ForgotPasswordNotice loginHref={`/${slug.toLowerCase()}/login`} />
     </div>
   )
 }
