@@ -70,3 +70,5 @@ seeding.md
 # Next.js 16 — workspace root warning (multi-project monorepo false positive)
 # turbopack.root is not set intentionally for single-app use
 
+# Prisma generated client
+/lib/generated/prisma
