@@ -50,6 +50,20 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
+> **Migration in progress:** the backend is moving from Supabase/Postgres to
+> self-hosted **SQL Server** (see `docs/superpowers/specs/2026-09-07-sqlserver-migration-design.md`).
+
+## Database (local dev)
+
+SQL Server via Docker, managed with **Prisma**. Full guide:
+[`docs/db/README.md`](docs/db/README.md). Quick start:
+
+```bash
+docker start pcucbt-sql
+npm run db:migrate   # apply migrations + generate client
+npm run db:seed      # baseline data (one institution + bootstrap admin)
+```
+
 ---
 
 ## License
