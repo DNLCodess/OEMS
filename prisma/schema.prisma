@@ -1,0 +1,12 @@
+// PCU CBT database schema — source of truth for SQL Server.
+// Field names deliberately match snake_case DB columns (see the Slice 0 plan's
+// Global Constraints) to match the existing app code.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
