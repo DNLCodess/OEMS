@@ -64,6 +64,9 @@ npm run db:migrate   # apply migrations + generate client
 npm run db:seed      # baseline data (one institution + bootstrap admin)
 ```
 
+Seed credentials: `superadmin@pcu.edu.ng` / value of `SEED_SUPER_ADMIN_PASSWORD`
+(you're forced to set a new password on first login).
+
 ---
 
 ## License

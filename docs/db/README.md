@@ -41,3 +41,22 @@ Unit tests run in the parallel **`unit`** project.
 - Everything:  `npx vitest run`
 - DB only:  `npx vitest run --project db`
 - Unit only:  `npx vitest run --project unit`
+
+## Auth (Slice 1)
+
+Staff sign in with email + password (argon2id, `lib/auth/password.js`).
+A successful login writes a row to `sessions` and sets the `pcu-cbt_session`
+HttpOnly cookie holding an opaque token (its SHA-256 is the row id).
+`lib/dal.js` (`getAuthUser` / `requireRole`) reads that cookie; `proxy.js`
+does a dependency-free cookie-presence check only.
+
+- Idle timeout 12 h (sliding), absolute cap 7 days.
+- `SESSION_COOKIE_SECURE=1` only behind HTTPS.
+- Seeded super-admin: `SEED_SUPER_ADMIN_EMAIL` / `SEED_SUPER_ADMIN_PASSWORD`,
+  forced to set a new password on first login (`must_change_password`).
+- Forgot-password is a static "contact your admin" notice — no outbound
+  email on the air-gapped LAN. Admin-driven password reset comes in Slice 3.
+
+Student credential-less auth (`exam_access` / `result_lookup` channels,
+rate limiting, IP allowlist) is Slice 2 — `/lab` and `/check-result` do
+not work on the `sqlserver-migration` branch until then.
