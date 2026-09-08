@@ -14,7 +14,7 @@ const resolve = {
 // DB integration tests hit the real SQL Server container and truncate tables
 // between tests — they must run serially, never in parallel with each other.
 // Pure unit tests stay parallel.
-const DB_TESTS = ['lib/db/**/*.test.js', 'prisma/**/*.test.js']
+const DB_TESTS = ['lib/db/**/*.test.js', 'lib/auth/**/*.test.js', 'prisma/**/*.test.js']
 
 export default defineConfig({
   resolve,
