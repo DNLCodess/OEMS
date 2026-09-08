@@ -12,7 +12,14 @@ describe('prisma/seed', () => {
     const admins = await prisma.user.findMany({ where: { role: 'super_admin' } })
     expect(admins).toHaveLength(1)
     expect(admins[0].must_change_password).toBe(true)
-    expect(admins[0].password_hash).toBeNull()
+    expect(admins[0].password_hash).not.toBeNull()
+  })
+
+  it('the seeded admin password verifies', async () => {
+    const { verifyPassword } = await import('@/lib/auth/password')
+    await seed()
+    const admin = await prisma.user.findFirst({ where: { role: 'super_admin' } })
+    expect(await verifyPassword(admin.password_hash, process.env.SEED_SUPER_ADMIN_PASSWORD || 'ChangePcu!2026')).toBe(true)
   })
 
   it('is re-runnable without creating duplicates', async () => {

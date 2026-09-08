@@ -1,9 +1,11 @@
 import { prisma } from '../lib/db/client.js'
+import { hashPassword } from '../lib/auth/password.js'
 
-const INSTITUTION_NAME  = process.env.SEED_INSTITUTION_NAME  || 'Precious Cornerstone University'
-const INSTITUTION_SLUG  = process.env.SEED_INSTITUTION_SLUG  || 'pcu'
-const SUPER_ADMIN_EMAIL = process.env.SEED_SUPER_ADMIN_EMAIL || 'superadmin@pcu.edu.ng'
-const SUPER_ADMIN_NAME  = process.env.SEED_SUPER_ADMIN_NAME  || 'System Administrator'
+const INSTITUTION_NAME    = process.env.SEED_INSTITUTION_NAME    || 'Precious Cornerstone University'
+const INSTITUTION_SLUG    = process.env.SEED_INSTITUTION_SLUG    || 'pcu'
+const SUPER_ADMIN_EMAIL   = process.env.SEED_SUPER_ADMIN_EMAIL   || 'superadmin@pcu.edu.ng'
+const SUPER_ADMIN_NAME    = process.env.SEED_SUPER_ADMIN_NAME    || 'System Administrator'
+const SUPER_ADMIN_PASSWORD = process.env.SEED_SUPER_ADMIN_PASSWORD || 'ChangePcu!2026'
 
 export async function seed() {
   // One institution. Upsert on the unique subdomain so re-running is safe.
@@ -13,10 +15,10 @@ export async function seed() {
     create: { name: INSTITUTION_NAME, subdomain: INSTITUTION_SLUG },
   })
 
-  // Bootstrap super admin. password_hash stays NULL here — Slice 1 adds the
-  // login flow + a one-time "set your password" step gated on
-  // must_change_password. Find-or-create by email (email is not unique in
-  // the schema, so we can't upsert on it).
+  // Bootstrap super admin. The seeded password is a shared bootstrap
+  // credential, so must_change_password forces a real one at first login.
+  // Find-or-create by email (email is not unique in the schema, so we
+  // can't upsert on it).
   const existing = await prisma.user.findFirst({
     where: { email: SUPER_ADMIN_EMAIL, role: 'super_admin' },
   })
@@ -27,6 +29,7 @@ export async function seed() {
         role: 'super_admin',
         email: SUPER_ADMIN_EMAIL,
         full_name: SUPER_ADMIN_NAME,
+        password_hash: await hashPassword(SUPER_ADMIN_PASSWORD),
         must_change_password: true,
       },
     })
