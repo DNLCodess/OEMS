@@ -49,10 +49,10 @@ proctoring or browser lockdown (both deferred to v2):
 | Proctoring / anti-cheat | **Deferred to v2.** v1 exam integrity = air-gapped LAN + revocable per-exam access code + lab IP allowlist.                                                                                                        |
 | In-hall enforcement     | **Lab IP allowlist** — exam entry and answer-saving only from approved lab-PC IPs/CIDRs.                                                                                                                           |
 | Delivery mode           | **Lab-only.** Remote exam delivery is fully removed — no `exam_mode` concept, no `remote` value. The supervised in-lab `/lab/{code}` flow is the only student path.                                                |
-| SQL Server edition      | **Express** (free, no licence held). Load test on real hardware is the acceptance gate; tuning/Standard is the escalation path.                                                                                   |
-| Transport               | **Plain HTTP** on the LAN for v1 (air-gapped, proctoring deferred). `TRUST_PROXY=0`.                                                                                                                              |
-| Access code             | **Auto-rotate on go-live** by default; per-exam **manual** mode available. Revocable any time.                                                                                                                   |
-| Scale                   | ~50 concurrent typical (one lab), **200 ceiling** (multi-lab).                                                                                                                                                    |
+| SQL Server edition      | **Express** (free, no licence held). Load test on real hardware is the acceptance gate; tuning/Standard is the escalation path.                                                                                    |
+| Transport               | **Plain HTTP** on the LAN for v1 (air-gapped, proctoring deferred). `TRUST_PROXY=0`.                                                                                                                               |
+| Access code             | **Auto-rotate on go-live** by default; per-exam **manual** mode available. Revocable any time.                                                                                                                     |
+| Scale                   | ~50 concurrent typical (one lab), **200 ceiling** (multi-lab).                                                                                                                                                     |
 
 ### Non-goals
 
@@ -110,20 +110,20 @@ policy becomes an explicit `WHERE` clause + role guard in a
 
 **What an IP address is.** Every machine on a network has a number like
 `192.168.1.42`. On a private LAN the first three groups (`192.168.1`)
-usually identify *the network* and the last group (`.42`) identifies
-*one machine* on it.
+usually identify _the network_ and the last group (`.42`) identifies
+_one machine_ on it.
 
 **Static vs DHCP.** By default a router hands out addresses
 automatically (DHCP) — a PC could be `.42` today and `.87` next week.
 For the allowlist to mean anything, each lab PC must keep the **same
-address every time**: either set a *static IP* on the PC, or make a
-*DHCP reservation* on the router that pins an address to that PC's
+address every time**: either set a _static IP_ on the PC, or make a
+_DHCP reservation_ on the router that pins an address to that PC's
 hardware (MAC) address. This is a one-time job when the lab is set up
 (NFR-SEC-10).
 
 **What the allowlist does.** The app keeps a list of "addresses allowed
 to take exams." When a student submits their matric number + access
-code, the server looks at *which machine the request came from*. If
+code, the server looks at _which machine the request came from_. If
 that machine's IP is not on the list, entry is refused — even with a
 valid matric number and the correct code. This is what stops a student
 sitting in the corridor with their laptop (joined to the lab Wi-Fi, code
@@ -131,10 +131,10 @@ shouted across the room) from starting the exam.
 
 **Two ways to fill the list:**
 
-| Approach | What you enter | When to use |
-|---|---|---|
-| **Per-host** (recommended, ~50 PCs) | Each lab PC's individual IP: `192.168.1.11`, `.12`, `.13`, … The admin page has an "add range 192.168.1.11–192.168.1.60" helper that creates all 50 in one click. | Whenever anything *other than* the exam PCs can also reach the server — a staff Wi-Fi, spare wall ports, the library. Only the listed 50 machines get in. |
-| **Single CIDR** (shortcut) | One entry describing the whole range, e.g. `192.168.1.0/24` = "any address `192.168.1.0`–`192.168.1.255`". | Only if the exam LAN is **physically dedicated** — that switch / access point has *nothing* plugged in but the 50 lab PCs and the server. Then "anyone who can reach the server is in the exam room by definition." |
+| Approach                            | What you enter                                                                                                                                                    | When to use                                                                                                                                                                                                         |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Per-host** (recommended, ~50 PCs) | Each lab PC's individual IP: `192.168.1.11`, `.12`, `.13`, … The admin page has an "add range 192.168.1.11–192.168.1.60" helper that creates all 50 in one click. | Whenever anything _other than_ the exam PCs can also reach the server — a staff Wi-Fi, spare wall ports, the library. Only the listed 50 machines get in.                                                           |
+| **Single CIDR** (shortcut)          | One entry describing the whole range, e.g. `192.168.1.0/24` = "any address `192.168.1.0`–`192.168.1.255`".                                                        | Only if the exam LAN is **physically dedicated** — that switch / access point has _nothing_ plugged in but the 50 lab PCs and the server. Then "anyone who can reach the server is in the exam room by definition." |
 
 **Why per-host is safer.** A CIDR is only as tight as your physical
 control of the network. If someone can plug a laptop into a free port on
@@ -143,7 +143,7 @@ first deployment: dedicated wired lab, unused switch ports disabled, and
 a per-host list of the 50 PCs.
 
 **Where the check runs.** On exam entry, on "start exam", and on every
-answer autosave (FR-LAB-2). *Not* on final submit — a student who
+answer autosave (FR-LAB-2). _Not_ on final submit — a student who
 legitimately started must always be able to finish. Staff logins and
 result lookups are never IP-restricted.
 
@@ -291,8 +291,8 @@ entry_window_minutes`.
   - **`manual`** — the lecturer types their own code (still validated
     for shape and non-revoked uniqueness) and it is **never**
     auto-rotated; only the lecturer changes it.
-  The lecturer can switch modes and regenerate on demand from the exam
-  page at any time.
+    The lecturer can switch modes and regenerate on demand from the exam
+    page at any time.
 - **FR-EXAM-7** The lecturer can **revoke** the code at any time
   (during the exam included). Revoking sets `access_code_revoked_at`.
   A revoked code immediately fails **new** exam entry (FR-AUTH-6c); it
@@ -681,19 +681,19 @@ middleware,admin}.js` usage for auth.
 
 ## 7. Risks & Mitigations
 
-| Risk                                                                     | Mitigation                                                                                                                                                                                          |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RLS→code translation misses a policy → data leak                         | NFR-TEST-1: allow+deny test per policy; slice-by-slice review; keep the old `schema.sql` as the reference checklist.                                                                                |
-| SQL Server multiple-cascade-path migration errors                        | Identify during Slice 0; convert offending cascades to `NoAction` + explicit repo cleanup, documented per table.                                                                                    |
-| Express 1 GB / 4-core cap insufficient under real load                   | NFR-PERF-6 load test on real hardware is a hard gate; escalation path is tune first (longer debounce, memory cap, indexes), then a Standard licence (NFR-DB-2). Workload math (NFR-PERF-2) says this is unlikely. |
-| Lab PC IPs change (DHCP churn) → students locked out mid-exam            | NFR-SEC-10 static IPs / DHCP reservations; allowlist supports CIDR so a whole lab subnet can be entered once; pre-exam checklist verifies a sample lab PC can reach entry.                          |
-| `TRUST_PROXY` misconfigured → allowlist bypassable or everyone blocked   | NFR-SEC-9 single explicit flag + runbook verification step (curl from a lab PC and a non-lab PC, confirm allow/deny).                                                                               |
-| Student brings own laptop onto the LAN and takes an allowed IP          | Default is **per-host allowlist** (§2.1), so an extra machine has an unlisted IP and is refused. Broad-CIDR deployments carry more residual risk — accepted for v1, offset by: dedicated wired lab, disabled unused switch ports, invigilator control, revocable code, v2 proctoring. |
-| Access code leaks to a student who is off-site                           | IP allowlist blocks entry from any non-lab machine; lecturer can revoke + reissue instantly (FR-EXAM-7); every blocked attempt is logged (FR-LAB-6).                                                |
-| Server power loss mid-exam                                               | NFR-HW-3 UPS; FR-ATT-2 15 s commit keeps loss ≤ 15 s.                                                                                                                                               |
-| Clock skew between machines breaks timers                                | NFR-OPS-6 checklist verifies sync; timers are server-authoritative (FR-ATT-4) so client skew is cosmetic.                                                                                           |
-| GUID PK index fragmentation over years of use                            | Clustered index on `created_at` for hot tables; annual reindex in maintenance script.                                                                                                               |
-| Air-gapped build can't fetch Prisma engines                              | NFR-INSTALL-2: build on connected machine or one-time online build before air-gapping.                                                                                                              |
+| Risk                                                                   | Mitigation                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RLS→code translation misses a policy → data leak                       | NFR-TEST-1: allow+deny test per policy; slice-by-slice review; keep the old `schema.sql` as the reference checklist.                                                                                                                                                                  |
+| SQL Server multiple-cascade-path migration errors                      | Identify during Slice 0; convert offending cascades to `NoAction` + explicit repo cleanup, documented per table.                                                                                                                                                                      |
+| Express 1 GB / 4-core cap insufficient under real load                 | NFR-PERF-6 load test on real hardware is a hard gate; escalation path is tune first (longer debounce, memory cap, indexes), then a Standard licence (NFR-DB-2). Workload math (NFR-PERF-2) says this is unlikely.                                                                     |
+| Lab PC IPs change (DHCP churn) → students locked out mid-exam          | NFR-SEC-10 static IPs / DHCP reservations; allowlist supports CIDR so a whole lab subnet can be entered once; pre-exam checklist verifies a sample lab PC can reach entry.                                                                                                            |
+| `TRUST_PROXY` misconfigured → allowlist bypassable or everyone blocked | NFR-SEC-9 single explicit flag + runbook verification step (curl from a lab PC and a non-lab PC, confirm allow/deny).                                                                                                                                                                 |
+| Student brings own laptop onto the LAN and takes an allowed IP         | Default is **per-host allowlist** (§2.1), so an extra machine has an unlisted IP and is refused. Broad-CIDR deployments carry more residual risk — accepted for v1, offset by: dedicated wired lab, disabled unused switch ports, invigilator control, revocable code, v2 proctoring. |
+| Access code leaks to a student who is off-site                         | IP allowlist blocks entry from any non-lab machine; lecturer can revoke + reissue instantly (FR-EXAM-7); every blocked attempt is logged (FR-LAB-6).                                                                                                                                  |
+| Server power loss mid-exam                                             | NFR-HW-3 UPS; FR-ATT-2 15 s commit keeps loss ≤ 15 s.                                                                                                                                                                                                                                 |
+| Clock skew between machines breaks timers                              | NFR-OPS-6 checklist verifies sync; timers are server-authoritative (FR-ATT-4) so client skew is cosmetic.                                                                                                                                                                             |
+| GUID PK index fragmentation over years of use                          | Clustered index on `created_at` for hot tables; annual reindex in maintenance script.                                                                                                                                                                                                 |
+| Air-gapped build can't fetch Prisma engines                            | NFR-INSTALL-2: build on connected machine or one-time online build before air-gapping.                                                                                                                                                                                                |
 
 ---
 
@@ -713,9 +713,9 @@ middleware,admin}.js` usage for auth.
    dedicated (nothing else on that switch/AP). See §2.1.
 5. **Access code auto-rotate?** → **`auto` by default** (fresh random
    code on each go-`live`), with a **`manual`** mode the lecturer can
-   pick. FR-EXAM-6 updated; `exams.access_code_mode` column added.
+   pick. FR-EXAM-6 updated; `exams.access_code_mode` colu2mn added.
 6. **HTTP vs HTTPS for v1?** → **Plain HTTP.** Rationale: the network is
-   air-gapped (no eavesdropper), proctoring (the feature that *needed*
+   air-gapped (no eavesdropper), proctoring (the feature that _needed_
    `getUserMedia` → secure context) is deferred, and HTTPS on a LAN
    means running + maintaining a local CA / self-signed certs that every
    lab browser must trust — real operational cost for near-zero benefit
