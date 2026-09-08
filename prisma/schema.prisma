@@ -10,3 +10,358 @@ datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Institution structure
+// ─────────────────────────────────────────────────────────────────────────────
+
+model University {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  name          String   @db.NVarChar(200)
+  subdomain     String   @unique @db.NVarChar(63)
+  logo_url      String?  @db.NVarChar(500)
+  primary_color String?  @db.NVarChar(32)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  faculties        Faculty[]
+  departments      Department[]
+  courses          Course[]
+  users            User[]
+  question_bank    QuestionBank[]
+  exams            Exam[]
+  admin_action_log AdminActionLog[]
+  lab_ip_allowlist LabIpAllowlist[]
+
+  @@map("universities")
+}
+
+model Faculty {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  university_id String   @db.NVarChar(36)
+  name          String   @db.NVarChar(200)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  university  University   @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  departments Department[]
+  users       User[]
+
+  @@unique([university_id, name])
+  @@index([university_id])
+  @@map("faculties")
+}
+
+model Department {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  university_id String   @db.NVarChar(36)
+  faculty_id    String   @db.NVarChar(36)
+  name          String   @db.NVarChar(200)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  // university_id is NoAction to avoid a SQL Server "multiple cascade paths"
+  // diamond (university -> faculty -> department AND university -> department).
+  // Cascade flows via the faculty chain; deleting a university is not a
+  // supported operation anyway (FR-INST-1).
+  university University @relation(fields: [university_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  faculty    Faculty    @relation(fields: [faculty_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  courses    Course[]
+  users      User[]
+
+  @@unique([faculty_id, name])
+  @@index([faculty_id])
+  @@map("departments")
+}
+
+model Course {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  university_id String   @db.NVarChar(36)
+  department_id String   @db.NVarChar(36)
+  course_code   String   @db.NVarChar(20)
+  course_title  String   @db.NVarChar(200)
+  credit_units  Int      @default(2)
+  level         String   @db.NVarChar(10)
+  semester      String   @db.NVarChar(10)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  // university_id NoAction — same diamond reason as Department.
+  university    University     @relation(fields: [university_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  department    Department     @relation(fields: [department_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_bank QuestionBank[]
+  exams         Exam[]
+
+  @@unique([university_id, course_code])
+  @@index([department_id])
+  @@index([university_id])
+  @@map("courses")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Users, sessions, verification throttling
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                   String    @id @default(uuid()) @db.NVarChar(36)
+  university_id        String?   @db.NVarChar(36)
+  role                 String    @db.NVarChar(20)
+  email                String    @db.NVarChar(255)
+  full_name            String    @db.NVarChar(200)
+  matric_number        String?   @db.NVarChar(50)
+  level                String?   @db.NVarChar(10)
+  department_id        String?   @db.NVarChar(36)
+  faculty_id           String?   @db.NVarChar(36)
+  is_active            Boolean   @default(true)
+  date_of_birth        DateTime? @db.Date
+  removed_at           DateTime? @db.DateTime2
+  password_hash        String?   @db.NVarChar(Max)
+  must_change_password Boolean   @default(false)
+  created_at           DateTime  @default(now()) @db.DateTime2
+
+  university University? @relation(fields: [university_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  department Department? @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  faculty    Faculty?    @relation(fields: [faculty_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  sessions          Session[]
+  questions_created QuestionBank[]   @relation("QuestionCreatedBy")
+  exams_created     Exam[]           @relation("ExamCreatedBy")
+  exam_access       ExamAccess[]
+  attempts          Attempt[]
+  results           Result[]
+  actions_performed AdminActionLog[] @relation("ActionActor")
+  actions_targeting AdminActionLog[] @relation("ActionTarget")
+  lab_ip_entries    LabIpAllowlist[]
+
+  @@index([university_id])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @db.NVarChar(64) // SHA-256 hex of the opaque token
+  user_id          String   @db.NVarChar(36)
+  channel          String   @db.NVarChar(20) // password | exam_access | result_lookup
+  verified_exam_id String?  @db.NVarChar(36)
+  client_ip        String?  @db.NVarChar(45)
+  created_at       DateTime @default(now()) @db.DateTime2
+  last_seen_at     DateTime @default(now()) @db.DateTime2
+  expires_at       DateTime @db.DateTime2
+
+  user          User  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  verified_exam Exam? @relation(fields: [verified_exam_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("sessions")
+}
+
+model VerificationAttempt {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  matric_number String   @db.NVarChar(50)
+  ip            String   @db.NVarChar(45)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  @@index([matric_number, ip, created_at])
+  @@map("verification_attempts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Question bank & exams
+// ─────────────────────────────────────────────────────────────────────────────
+
+model QuestionBank {
+  id             String   @id @default(uuid()) @db.NVarChar(36)
+  university_id  String   @db.NVarChar(36)
+  created_by     String   @db.NVarChar(36)
+  course_id      String   @db.NVarChar(36)
+  type           String   @db.NVarChar(20)
+  body           String   @db.NVarChar(Max)
+  options        String?  @db.NVarChar(Max) // JSON string
+  correct_answer String?  @db.NVarChar(Max) // JSON string
+  explanation    String?  @db.NVarChar(Max)
+  difficulty     String   @default("medium") @db.NVarChar(10)
+  tags           String   @default("[]") @db.NVarChar(Max) // JSON array string
+  is_archived    Boolean  @default(false)
+  created_at     DateTime @default(now()) @db.DateTime2
+
+  university     University     @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator        User           @relation("QuestionCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course         Course         @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam_questions ExamQuestion[]
+  responses      Response[]
+
+  @@index([course_id])
+  @@index([created_by])
+  @@map("question_bank")
+}
+
+model Exam {
+  id                     String    @id @default(uuid()) @db.NVarChar(36)
+  university_id          String    @db.NVarChar(36)
+  created_by             String    @db.NVarChar(36)
+  course_id              String    @db.NVarChar(36)
+  title                  String    @db.NVarChar(300)
+  instructions           String?   @db.NVarChar(Max)
+  duration_minutes       Int
+  start_at               DateTime? @db.DateTime2 // legacy, unused
+  end_at                 DateTime? @db.DateTime2 // legacy, unused
+  academic_session       String    @db.NVarChar(20)
+  semester               String    @db.NVarChar(10)
+  exam_type              String    @db.NVarChar(20)
+  status                 String    @default("draft") @db.NVarChar(20)
+  pass_mark              Int       @default(50)
+  randomise_questions    Boolean   @default(false)
+  randomise_options      Boolean   @default(false)
+  access_code            String?   @db.NVarChar(12)
+  access_code_mode       String    @default("auto") @db.NVarChar(10) // auto | manual
+  access_code_revoked_at DateTime? @db.DateTime2
+  enforce_ip_allowlist   Boolean   @default(true)
+  proctoring_enabled     Boolean   @default(false) // retained, unused (v2)
+  show_calculator        Boolean   @default(false)
+  tips                   String    @default("[]") @db.NVarChar(Max) // JSON array string
+  go_live_at             DateTime? @db.DateTime2
+  entry_window_minutes   Int       @default(10)
+  created_at             DateTime  @default(now()) @db.DateTime2
+
+  university     University     @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator        User           @relation("ExamCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course         Course         @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam_questions ExamQuestion[]
+  exam_access    ExamAccess[]
+  attempts       Attempt[]
+  results        Result[]
+  sessions       Session[]
+
+  @@index([course_id])
+  @@index([status])
+  @@map("exams")
+}
+
+model ExamQuestion {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  exam_id     String   @db.NVarChar(36)
+  question_id String   @db.NVarChar(36)
+  order_index Int      @default(0)
+  marks       Int      @default(1)
+  created_at  DateTime @default(now()) @db.DateTime2
+
+  exam     Exam         @relation(fields: [exam_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question QuestionBank @relation(fields: [question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([exam_id, question_id])
+  @@index([exam_id])
+  @@map("exam_questions")
+}
+
+model ExamAccess {
+  id         String   @id @default(uuid()) @db.NVarChar(36)
+  exam_id    String   @db.NVarChar(36)
+  user_id    String   @db.NVarChar(36)
+  created_at DateTime @default(now()) @db.DateTime2
+
+  exam Exam @relation(fields: [exam_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([exam_id, user_id])
+  @@map("exam_access")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Attempts, responses, results
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Attempt {
+  id           String    @id @default(uuid()) @db.NVarChar(36)
+  exam_id      String    @db.NVarChar(36)
+  student_id   String    @db.NVarChar(36)
+  started_at   DateTime  @default(now()) @db.DateTime2
+  submitted_at DateTime? @db.DateTime2
+  status       String    @default("in_progress") @db.NVarChar(20)
+  total_score  Int?
+  created_at   DateTime  @default(now()) @db.DateTime2
+
+  exam      Exam       @relation(fields: [exam_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student   User       @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  responses Response[]
+  result    Result?
+
+  @@unique([exam_id, student_id])
+  @@index([exam_id])
+  @@index([student_id])
+  @@map("attempts")
+}
+
+model Response {
+  id               String   @id @default(uuid()) @db.NVarChar(36)
+  attempt_id       String   @db.NVarChar(36)
+  question_id      String   @db.NVarChar(36)
+  student_answer   String?  @db.NVarChar(Max) // JSON string
+  is_correct       Boolean?
+  marks_awarded    Int      @default(0)
+  teacher_feedback String?  @db.NVarChar(Max)
+  created_at       DateTime @default(now()) @db.DateTime2
+
+  attempt  Attempt      @relation(fields: [attempt_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question QuestionBank @relation(fields: [question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([attempt_id, question_id])
+  @@index([attempt_id])
+  @@map("responses")
+}
+
+model Result {
+  id          String    @id @default(uuid()) @db.NVarChar(36)
+  attempt_id  String    @unique @db.NVarChar(36)
+  student_id  String    @db.NVarChar(36)
+  exam_id     String    @db.NVarChar(36)
+  final_score Int
+  passed      Boolean
+  released_at DateTime? @db.DateTime2
+  created_at  DateTime  @default(now()) @db.DateTime2
+
+  attempt Attempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student User    @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam    Exam    @relation(fields: [exam_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([student_id])
+  @@index([exam_id])
+  @@index([released_at])
+  @@map("results")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit log & lab network allowlist
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AdminActionLog {
+  id                String   @id @default(uuid()) @db.NVarChar(36)
+  university_id     String?  @db.NVarChar(36)
+  actor_id          String?  @db.NVarChar(36)
+  action            String   @db.NVarChar(40)
+  target_user_id    String?  @db.NVarChar(36)
+  subject_role      String?  @db.NVarChar(20)
+  target_identifier String?  @db.NVarChar(255)
+  meta              String?  @db.NVarChar(Max) // JSON string (e.g. blocked IP)
+  created_at        DateTime @default(now()) @db.DateTime2
+
+  university University? @relation(fields: [university_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  actor      User?       @relation("ActionActor", fields: [actor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  target     User?       @relation("ActionTarget", fields: [target_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([university_id])
+  @@index([created_at])
+  @@map("admin_action_log")
+}
+
+model LabIpAllowlist {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  university_id String   @db.NVarChar(36)
+  entry         String   @db.NVarChar(64) // single IPv4 or CIDR
+  label         String?  @db.NVarChar(120)
+  is_active     Boolean  @default(true)
+  created_by    String   @db.NVarChar(36)
+  created_at    DateTime @default(now()) @db.DateTime2
+
+  university University @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator    User       @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([university_id])
+  @@map("lab_ip_allowlist")
+}
