@@ -23,11 +23,24 @@ function normalizeIp(addr) {
 }
 
 app.prepare().then(() => {
-  createServer((req, res) => {
+  // Must be requested only after prepare() resolves.
+  const handleUpgrade = app.getUpgradeHandler()
+
+  const server = createServer((req, res) => {
     delete req.headers[DIRECT_IP_HEADER]
     req.headers[DIRECT_IP_HEADER] = normalizeIp(req.socket.remoteAddress)
     handle(req, res)
-  }).listen(port, hostname, () => {
+  })
+
+  // Dev-mode HMR (Turbopack/webpack) upgrades the connection to a
+  // WebSocket. A plain http.createServer ignores 'upgrade' by default,
+  // which silently breaks the HMR socket — and with it, client hydration
+  // reliability. Next's custom-server API exists specifically for this.
+  server.on('upgrade', (req, socket, head) => {
+    handleUpgrade(req, socket, head)
+  })
+
+  server.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`)
   })
 })
