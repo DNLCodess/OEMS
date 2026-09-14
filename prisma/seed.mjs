@@ -93,6 +93,33 @@ async function seedSampleData(universityId) {
       },
     })
   }
+  const examCreator = await prisma.user.findFirst({ where: { email: 'lecturer@pcu.edu.ng' } })
+  const exam = await prisma.exam.findFirst({ where: { university_id: universityId, access_code: 'DEMO01' } })
+  if (!exam && examCreator) {
+    await prisma.exam.create({
+      data: {
+        university_id: universityId, created_by: examCreator.id, course_id: course.id,
+        title: 'CSC 301 — Demo Mid-Semester Test', duration_minutes: 60,
+        academic_session: '2025/2026', semester: 'first', exam_type: 'mid_semester',
+        status: 'live', access_code: 'DEMO01', go_live_at: new Date(),
+      },
+    })
+  }
+
+  const superAdmin = await prisma.user.findFirst({ where: { role: 'super_admin' } })
+  const allowlistDefaults = [
+    { entry: '127.0.0.1', label: 'Local dev machine' },
+    { entry: '192.168.1.0/24', label: 'Example lab subnet — replace before go-live' },
+  ]
+  for (const { entry, label } of allowlistDefaults) {
+    const existingEntry = await prisma.labIpAllowlist.findFirst({ where: { university_id: universityId, entry } })
+    if (!existingEntry && superAdmin) {
+      await prisma.labIpAllowlist.create({
+        data: { university_id: universityId, entry, label, created_by: superAdmin.id },
+      })
+    }
+  }
+
   return { faculty, department, course }
 }
 

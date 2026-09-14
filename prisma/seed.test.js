@@ -28,4 +28,20 @@ describe('prisma/seed', () => {
     expect(await prisma.university.count()).toBe(1)
     expect(await prisma.user.count({ where: { role: 'super_admin' } })).toBe(1)
   })
+
+  it('SEED_SAMPLE_DATA=1 also seeds a live demo exam and lab IP allowlist entries', async () => {
+    const original = process.env.SEED_SAMPLE_DATA
+    process.env.SEED_SAMPLE_DATA = '1'
+    try {
+      await seed()
+      const exam = await prisma.exam.findFirst({ where: { access_code: 'DEMO01' } })
+      expect(exam).not.toBeNull()
+      expect(exam.status).toBe('live')
+
+      const entries = await prisma.labIpAllowlist.findMany({ where: { is_active: true } })
+      expect(entries.map((e) => e.entry).sort()).toEqual(['127.0.0.1', '192.168.1.0/24'])
+    } finally {
+      process.env.SEED_SAMPLE_DATA = original
+    }
+  })
 })
