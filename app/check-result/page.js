@@ -1,16 +1,13 @@
-import { requireRole } from '@/lib/dal'
-import { createClient } from '@/lib/supabase/server'
+import { readStudentSession } from '@/lib/auth/session'
+import { prisma } from '@/lib/db/client'
 import { CheckResultForm } from './CheckResultForm'
-import { CheckAnotherResultButton } from './CheckAnotherResultButton'
-import { ResultsList } from '@/components/student/ResultsList'
+import { EndSessionButton } from './EndSessionButton'
 
 export const metadata = { title: 'Check Result — PCU CBT' }
 
 export default async function CheckResultPage() {
-  const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
-  const isResultLookupSession = authUser?.app_metadata?.session_channel === 'result_lookup'
+  const session = await readStudentSession()
+  const isResultLookupSession = session?.channel === 'result_lookup'
 
   if (!isResultLookupSession) {
     return (
@@ -25,43 +22,40 @@ export default async function CheckResultPage() {
               Enter your matric number and date of birth
             </p>
           </div>
-
           <CheckResultForm />
         </div>
       </div>
     )
   }
 
-  // Verified for result lookup — show this student's own results only.
-  // Deliberately minimal: no trend indicators, no per-course averages, no
-  // browsing into other exams. Just what a matric+DOB lookup is for.
-  const user = await requireRole('student')
-
-  const { data: results } = await supabase
-    .from('results')
-    .select(`
-      final_score, passed,
-      exams:exam_id (
-        id, title, exam_type,
-        courses!course_id ( course_code, course_title ),
-        exam_questions ( marks )
-      ),
-      attempts:attempt_id ( submitted_at )
-    `)
-    .eq('student_id', user.id)
-    .order('attempts(submitted_at)', { ascending: false })
-
-  const enriched = (results ?? []).map(r => {
-    const totalMarks = (r.exams?.exam_questions ?? []).reduce((s, q) => s + (q.marks ?? 0), 0)
-    const pct = totalMarks > 0 ? Math.round((r.final_score / totalMarks) * 100) : 0
-    return { ...r, totalMarks, pct }
+  // Real released results, read directly — this one query, used only here,
+  // doesn't earn a repository module (Slice 5/6 will introduce a proper
+  // results repo when they build the full results dashboard).
+  const results = await prisma.result.findMany({
+    where: { student_id: session.user.id, released_at: { not: null } },
+    select: { final_score: true, passed: true, exam: { select: { title: true } } },
+    orderBy: { created_at: 'desc' },
   })
 
   return (
     <div className="flex-1 px-4 py-16">
-      <ResultsList user={user} results={enriched} />
-      <div className="text-center">
-        <CheckAnotherResultButton />
+      <div className="max-w-sm mx-auto text-center">
+        <h1 className="text-xl font-bold text-text-primary mb-6">Your Results</h1>
+        {results.length === 0 ? (
+          <p className="text-sm text-text-muted mb-8">No released results yet.</p>
+        ) : (
+          <ul className="space-y-3 mb-8 text-left">
+            {results.map((r, i) => (
+              <li key={i} className="bg-surface border border-border rounded-xl p-4">
+                <p className="text-sm font-semibold text-text-primary">{r.exam.title}</p>
+                <p className="text-sm text-text-secondary">
+                  Score: {r.final_score} · {r.passed ? 'Passed' : 'Not passed'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <EndSessionButton />
       </div>
     </div>
   )
