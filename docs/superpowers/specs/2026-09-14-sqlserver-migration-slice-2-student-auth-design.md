@@ -65,16 +65,46 @@ needs (`Session`, `VerificationAttempt`, `LabIpAllowlist`,
 
 ## 2. New modules
 
+### `server.js` (project root) — the direct-IP source, discovered mid-design
+Next.js App Router (self-hosted, no reverse proxy) gives Server Actions and
+Route Handlers no access to the raw TCP socket — only request headers.
+Under `TRUST_PROXY=0` the spec requires *ignoring* `X-Forwarded-For`
+entirely, because nothing prevents a client from setting that header itself
+(a `curl` or `fetch()` call can send arbitrary header names). With no proxy
+in front, there is otherwise no source of a trustworthy client IP at all.
+
+The fix: a minimal custom Node server (`server.js`, ESM, wraps
+`next()`'s request handler with `node:http`) that, on every incoming
+request, **deletes** any client-supplied `x-pcu-direct-ip` header and then
+**sets** it fresh from `req.socket.remoteAddress` before handing the
+request to Next. Because the app only ever trusts a header that its own
+front door just overwrote, a client cannot forge it. `npm run dev` and
+`npm run start` are changed to run this file instead of `next dev` /
+`next start`; Turbopack is preserved by passing `turbopack: true` to the
+programmatic `next()` API in dev mode (supported by the installed Next
+16.2.4 — `next start`/`next dev`'s CLI flag and the custom-server option
+are the same underlying switch).
+
+The server binds `0.0.0.0` (IPv4 only — matches the real deployment, an
+IPv4 lab LAN; see §2.1 of the parent design, which only ever gives IPv4
+examples). This slice's IP allowlist and matching are **IPv4-only** as a
+result — a deliberate scope line, not an oversight. `::ffff:`-mapped
+addresses (dual-stack artifacts) are normalized to plain IPv4 before
+being written to the header.
+
 ### `lib/security/clientIp.js`
 Pure functions, no DB access:
-- `resolveClientIp(headers)` — reads `TRUST_PROXY` from env.
-  `TRUST_PROXY=0` (default): return the direct socket remote address only;
-  `X-Forwarded-For` is never read. `TRUST_PROXY=1`: return the **rightmost**
-  entry of `X-Forwarded-For` (the hop closest to the trusted proxy).
+- `resolveClientIp(headers)` — `headers` is anything with `.get(name)`
+  (a `Headers` instance or `next/headers`' `await headers()` result).
+  `TRUST_PROXY=0` (default): return the `x-pcu-direct-ip` header set by
+  `server.js`; `X-Forwarded-For` is never read. `TRUST_PROXY=1` (a trusted
+  local proxy is in front instead): return the **rightmost** entry of
+  `X-Forwarded-For` (the hop closest to the trusted proxy).
 - `isIpAllowed(ip, entries)` — `entries` is `{ entry: string }[]` from the
-  allowlist repo. Matches an exact IPv4 string or tests membership in a CIDR
-  (`a.b.c.d/n`). Returns `false` on a malformed `ip` or `entry` (fail closed,
-  never throw across this boundary).
+  allowlist repo. Matches an exact IPv4 string or tests membership in an
+  IPv4 CIDR (`a.b.c.d/n`). Returns `false` on a malformed `ip` or `entry`,
+  or on anything that isn't a plain IPv4 dotted-quad (fail closed, never
+  throw across this boundary).
 
 ### `lib/db/repositories/labIpAllowlist.js`
 - `listActiveEntries(universityId)` — active rows only, for enforcement checks.
@@ -183,8 +213,12 @@ existing `isSafeReturnPath` allowlist redirect logic (unchanged).
 ## 5. Testing
 
 - `lib/security/clientIp.test.js` (NFR-TEST-5): exact IPv4 match/non-match,
-  CIDR match/non-match, `TRUST_PROXY=0` ignores `X-Forwarded-For`,
-  `TRUST_PROXY=1` reads the rightmost hop, malformed input fails closed.
+  CIDR match/non-match, `TRUST_PROXY=0` reads `x-pcu-direct-ip` and ignores
+  `X-Forwarded-For` even when both are present, `TRUST_PROXY=1` reads the
+  rightmost `X-Forwarded-For` hop, malformed/non-IPv4 input fails closed.
+- `server.js` is verified manually (§ manual UAT below) rather than unit
+  tested — it's an integration wrapper with no pure logic of its own beyond
+  what `clientIp.js` already covers.
 - Repo tests for `labIpAllowlist.js`, `verificationAttempts.js`,
   `students.js`, `exams.js` (allow/deny paths, matching Slice 1's pattern).
 - `lib/actions/studentAuth.test.js` rewritten against the Prisma test
