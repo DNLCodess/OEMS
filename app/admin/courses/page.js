@@ -1,8 +1,7 @@
 import { requireRole } from '@/lib/dal'
-import { createClient } from '@/lib/supabase/server'
+import { listCourses, listDepartments } from '@/lib/db/repositories/structure'
 import { TopBar } from '@/components/shared/TopBar'
 import { CreateCourseForm } from './CreateCourseForm'
-import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { BookOpen } from 'lucide-react'
 
 export const metadata = { title: 'Courses — PCU CBT' }
@@ -10,40 +9,17 @@ export const metadata = { title: 'Courses — PCU CBT' }
 const LEVEL_LABELS = { '100': '100L', '200': '200L', '300': '300L', '400': '400L', '500': '500L', PG: 'PG' }
 
 export default async function AdminCoursesPage() {
-  const user     = await requireRole('school_admin')
-  const supabase = await createClient()
+  await requireRole('school_admin', 'super_admin')
 
-  const [
-    { data: courses, error: coursesError },
-    { data: departments, error: departmentsError },
-  ] = await Promise.all([
-    supabase
-      .from('courses')
-      .select('id, course_code, course_title, credit_units, level, semester, departments ( name, faculties ( name ) )')
-      .eq('university_id', user.university_id)
-      .order('course_code'),
-    supabase
-      .from('departments')
-      .select('id, name')
-      .eq('university_id', user.university_id)
-      .order('name'),
-  ])
-  if (coursesError) console.error('[AdminCoursesPage]', coursesError)
-  // departments only feeds CreateCourseForm's dropdown — logged, not bannered (see plan Global Constraints)
-  if (departmentsError) console.error('[AdminCoursesPage]', departmentsError)
+  const [courses, departments] = await Promise.all([listCourses(), listDepartments()])
 
   return (
     <>
-      <TopBar
-        title="Courses"
-        subtitle={`${courses?.length ?? 0} courses registered`}
-      />
+      <TopBar title="Courses" subtitle={`${courses.length} courses registered`} />
       <main className="flex-1 p-6 max-w-5xl space-y-6">
-        <CreateCourseForm departments={departments ?? []} />
+        <CreateCourseForm departments={departments} />
 
-        {coursesError ? (
-          <QueryErrorBanner message="Failed to load courses. Please refresh." />
-        ) : !courses?.length ? (
+        {!courses.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
             <BookOpen size={32} className="text-text-muted mb-3" />
             <p className="text-sm font-medium text-text-primary mb-1">No courses yet</p>
@@ -72,8 +48,8 @@ export default async function AdminCoursesPage() {
                     </td>
                     <td className="px-4 py-3 text-text-primary font-medium">{c.course_title}</td>
                     <td className="px-4 py-3 text-text-secondary hidden md:table-cell">
-                      <div>{c.departments?.name}</div>
-                      <div className="text-xs text-text-muted">{c.departments?.faculties?.name}</div>
+                      <div>{c.department?.name}</div>
+                      <div className="text-xs text-text-muted">{c.department?.faculty?.name}</div>
                     </td>
                     <td className="px-4 py-3 text-text-secondary">{LEVEL_LABELS[c.level] ?? c.level}</td>
                     <td className="px-4 py-3 text-text-secondary capitalize hidden sm:table-cell">{c.semester}</td>

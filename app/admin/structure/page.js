@@ -1,70 +1,42 @@
 import { requireRole } from '@/lib/dal'
-import { createClient } from '@/lib/supabase/server'
+import { listFaculties, listDepartments } from '@/lib/db/repositories/structure'
 import { TopBar } from '@/components/shared/TopBar'
-import { QueryErrorBanner } from '@/components/ui/QueryErrorBanner'
 import { CreateFacultyForm, CreateDepartmentForm } from './StructureForms'
 import { Building2, ChevronRight } from 'lucide-react'
 
 export const metadata = { title: 'Faculties & Departments — PCU CBT' }
 
 export default async function AdminStructurePage() {
-  const user     = await requireRole('school_admin')
-  const supabase = await createClient()
+  await requireRole('school_admin', 'super_admin')
 
-  const [
-    { data: faculties, error: facultiesError },
-    { data: departments, error: departmentsError },
-  ] = await Promise.all([
-    supabase
-      .from('faculties')
-      .select('id, name')
-      .eq('university_id', user.university_id)
-      .order('name'),
-    supabase
-      .from('departments')
-      .select('id, name, faculty_id')
-      .eq('university_id', user.university_id)
-      .order('name'),
-  ])
+  const [faculties, departments] = await Promise.all([listFaculties(), listDepartments()])
 
-  const structureError = facultiesError || departmentsError
-  if (structureError) console.error('[AdminStructurePage]', structureError)
-
-  // Group departments by faculty
   const deptsByFaculty = {}
-  for (const d of departments ?? []) {
+  for (const d of departments) {
     if (!deptsByFaculty[d.faculty_id]) deptsByFaculty[d.faculty_id] = []
     deptsByFaculty[d.faculty_id].push(d)
   }
 
   return (
     <>
-      <TopBar
-        title="Faculties & Departments"
-        subtitle="Define your institution's academic structure"
-      />
+      <TopBar title="Faculties & Departments" subtitle="Define your institution's academic structure" />
       <main className="flex-1 p-6">
         <div className="max-w-4xl grid lg:grid-cols-3 gap-6">
-
-          {/* Actions column */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-text-primary mb-3">Add Structure</h2>
             <CreateFacultyForm />
-            <CreateDepartmentForm faculties={faculties ?? []} />
+            <CreateDepartmentForm faculties={faculties} />
           </div>
 
-          {/* Structure tree */}
           <div className="lg:col-span-2">
             <h2 className="text-sm font-semibold text-text-primary mb-3">
               Current Structure
               <span className="ml-2 text-xs font-normal text-text-muted">
-                {faculties?.length ?? 0} {faculties?.length === 1 ? 'faculty' : 'faculties'} · {departments?.length ?? 0} departments
+                {faculties.length} {faculties.length === 1 ? 'faculty' : 'faculties'} · {departments.length} departments
               </span>
             </h2>
 
-            {structureError ? (
-              <QueryErrorBanner message="Failed to load faculties and departments. Please refresh." />
-            ) : !faculties?.length ? (
+            {!faculties.length ? (
               <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
                 <Building2 size={32} className="text-text-muted mb-3" />
                 <p className="text-sm font-medium text-text-primary mb-1">No structure yet</p>
