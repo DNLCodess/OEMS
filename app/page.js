@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 const ROLE_HOME = {
-  super_admin:  '/super-admin/dashboard',
+  super_admin:  '/admin/dashboard',
   school_admin: '/admin/dashboard',
   lecturer:     '/lecturer/dashboard',
   student:      '/lab',
