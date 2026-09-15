@@ -7,9 +7,7 @@ import { SESSION_COOKIE } from '@/lib/auth/constants'
 const PUBLIC_PREFIXES = ['/login', '/forgot-password', '/dev', '/lab', '/check-result']
 
 const isPublic = (pathname) =>
-  PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/')) ||
-  // legacy /{slug}/login and /{slug}/forgot-password — removed in Slice 3
-  /^\/[a-z0-9-]+\/(login|forgot-password)$/i.test(pathname)
+  PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
 export function proxy(request) {
   const { pathname } = request.nextUrl
