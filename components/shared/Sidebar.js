@@ -12,11 +12,14 @@ import { signOut } from '@/lib/actions/auth'
 
 const NAV = {
   super_admin: [
-    { label: 'Dashboard',    href: '/super-admin/dashboard',    icon: LayoutDashboard },
-    { label: 'Universities', href: '/super-admin/universities', icon: Building2 },
-    { label: 'All Users',    href: '/super-admin/users',        icon: Users },
-    { label: 'Logs',         href: '/super-admin/logs',         icon: History },
-    { label: 'Settings',     href: '/super-admin/settings',     icon: Settings },
+    { label: 'Dashboard',         href: '/admin/dashboard',  icon: LayoutDashboard },
+    { label: 'Users',             href: '/admin/users',       icon: Users },
+    { label: 'Faculties & Depts', href: '/admin/structure',   icon: Building2 },
+    { label: 'Courses',           href: '/admin/courses',     icon: BookOpen },
+    { label: 'Exam Oversight',    href: '/admin/exams',       icon: ClipboardList },
+    { label: 'Lab Network',       href: '/admin/lab-network', icon: Settings },
+    { label: 'Settings',          href: '/admin/settings',    icon: Settings },
+    { label: 'Logs',              href: '/admin/logs',        icon: History },
   ],
   school_admin: [
     { label: 'Dashboard',         href: '/admin/dashboard',  icon: LayoutDashboard },
@@ -24,6 +27,7 @@ const NAV = {
     { label: 'Faculties & Depts', href: '/admin/structure',   icon: Building2 },
     { label: 'Courses',           href: '/admin/courses',     icon: BookOpen },
     { label: 'Exam Oversight',    href: '/admin/exams',       icon: ClipboardList },
+    { label: 'Lab Network',       href: '/admin/lab-network', icon: Settings },
     { label: 'Logs',              href: '/admin/logs',        icon: History },
   ],
   lecturer: [

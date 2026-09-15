@@ -4,7 +4,7 @@ import { Sidebar } from '@/components/shared/Sidebar'
 import { getUniversityThemeStyle } from '@/lib/universityTheme'
 
 export default async function AdminLayout({ children }) {
-  const user     = await requireRole('school_admin')
+  const user     = await requireRole('school_admin', 'super_admin')
   const supabase = await createClient()
 
   const { data: university } = await supabase
